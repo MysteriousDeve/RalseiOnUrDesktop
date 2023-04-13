@@ -48,6 +48,8 @@ Gdiplus::Image* img;
 GdiplusStartupInput startInput;
 ULONG_PTR gdiToken;
 
+AnimationClip* clip;
+
 void Paint(HWND hWnd);
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
@@ -100,6 +102,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         MessageBoxA(NULL, "The hell?", "Image not loaded", MB_OK);
         exit(0);
     }
+    clip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralseib_idle", 0.2, 5);
+    
 
     MSG msg = { };
     if (!SetForegroundWindow(hWnd)) MessageBox(NULL, L"Can't bring to front", L"", MB_OK);
@@ -206,6 +210,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_DESTROY:
         {
+            delete clip;
             GdiplusShutdown(gdiToken);
             PostQuitMessage(0);
             return 0;
@@ -256,7 +261,7 @@ void Paint(HWND hWnd)
     g.SetInterpolationMode(InterpolationModeNearestNeighbor);
     g.SetPixelOffsetMode(PixelOffsetModeNone);
     Rect gdirect(0, 0, 200, 200);
-    g.DrawImage(img, gdirect);
+    g.DrawImage(clip->Animate(1 / 60.0), gdirect);
 
 
     // Done with off-screen bitmap and DC.
