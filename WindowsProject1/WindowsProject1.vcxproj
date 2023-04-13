@@ -134,6 +134,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ImageLoader.cpp" />
+    <ClCompile Include="Scrap.cpp" />
     <ClCompile Include="WindowsProject1.cpp" />
   </ItemGroup>
   <ItemGroup>

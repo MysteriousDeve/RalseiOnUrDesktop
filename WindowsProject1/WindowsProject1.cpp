@@ -13,6 +13,7 @@
 
 #include "ImageLoader.cpp"
 #pragma comment (lib,"Gdiplus.lib")
+#pragma comment (lib,"msimg32.lib")
 
 
 
@@ -47,8 +48,7 @@ Gdiplus::Image* img;
 GdiplusStartupInput startInput;
 ULONG_PTR gdiToken;
 
-BITMAP backbuffer;
-
+void Paint(HWND hWnd);
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
     GdiplusStartup(&gdiToken, &startInput, NULL);
@@ -94,9 +94,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         return 0;
     }
 
-    SetLayeredWindowAttributes(hWnd, 0 /* not affect bkg color */, 255, LWA_ALPHA);
-    ShowWindow(hWnd, SW_SHOW);
-
     img = Gdiplus::Image::FromFile(L"deltarune-sprites\\ralsei\\spr_ralseib_idle(0).png");
     if (img->GetLastStatus() != Gdiplus::Ok)
     {
@@ -138,14 +135,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
                         -1, -1, SWP_NOSIZE
                     );
                 }
-                InvalidateRect(hWnd, NULL, FALSE);
+                Paint(hWnd);
+                ShowWindow(hWnd, SW_SHOW);
+                // InvalidateRect(hWnd, NULL, FALSE);
             }
         }
     }
     return 0;
 }
 
-void Paint(HWND hWnd, LPPAINTSTRUCT lpPS);
 LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 {
     switch (Message)
@@ -154,8 +152,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
         {
             RECT wndRect;
             GetWindowRect(hWnd, &wndRect);
-
-            backbuffer = CreateBitmap(wndRect.right - wndRect.left, wndRect.bottom - wndRect.top, );
 
             flybarRect = wndRect;
             wndRect.bottom = flybarSize;
@@ -208,29 +204,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_ERASEBKGND: return (LRESULT)1; // Tell Windows we handle the background erase, to prevent flickering ig...
 
-        case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            SelectObject(hdc, GetStockObject(DC_BRUSH));
-            RECT wrect, textRect;
-            GetWindowRect(hWnd, &wrect);
-
-            Paint(hWnd, &ps);
-
-
-            Gdiplus::Graphics g(hdc);
-            g.Clear(Gdiplus::Color(20, 0, 0, 0));
-            g.SetInterpolationMode(InterpolationModeNearestNeighbor);
-            g.SetPixelOffsetMode(PixelOffsetModeNone);
-            Rect gdirect(0, 0, 200, 200);
-            g.DrawImage(img, gdirect);
-
-
-            EndPaint(hWnd, &ps);
-        }
-        return 0;
-
         case WM_DESTROY:
         {
             GdiplusShutdown(gdiToken);
@@ -244,63 +217,65 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
 
 
-void Paint(HWND hWnd, LPPAINTSTRUCT lpPS)
+void Paint(HWND hWnd)
 {
     RECT rc;
     HDC hdcMem;
-    HBITMAP hbmMem, hbmOld;
-    HBRUSH hbrBkGnd;
-    HFONT hfntOld;
+    HBITMAP hbmMem;
+    HBITMAP hbmOld;
+    HDC hdc = GetDC(NULL);
+
+    // Blend function
+    BLENDFUNCTION bf;
+    bf.BlendOp = AC_SRC_OVER;
+    bf.BlendFlags = 0;
+    bf.SourceConstantAlpha = 255;
+    bf.AlphaFormat = AC_SRC_ALPHA;
 
     // Get the size of the client rectangle.
-    GetClientRect(hWnd, &rc);
+    GetWindowRect(hWnd, &rc);
 
     // Create a compatible DC.
-    hdcMem = CreateCompatibleDC(lpPS->hdc);
+    hdcMem = CreateCompatibleDC(hdc);
 
     // Create a bitmap big enough for our client rectangle.
-    hbmMem = CreateCompatibleBitmap(lpPS->hdc,
+    hbmMem = CreateCompatibleBitmap(hdc,
         rc.right - rc.left,
         rc.bottom - rc.top);
 
     // Select the bitmap into the off-screen DC.
-    hbmOld = SelectObject(hdcMem, hbmMem);
+    hbmOld = (HBITMAP)SelectObject(hdcMem, hbmMem);
 
-    // Erase the background.
-    hbrBkGnd = CreateSolidBrush(GetSysColor(COLOR_WINDOW));
-    FillRect(hdcMem, &rc, hbrBkGnd);
-    DeleteObject(hbrBkGnd);
+    // Bitmap
+    BITMAP bm;
+    GetObject(hbmMem, sizeof(bm), &bm);
+    SIZE szBmp = { bm.bmWidth, bm.bmHeight };
 
-    // Select the font.
-    if (hfnt) {
-        hfntOld = SelectObject(hdcMem, hfnt);
-    }
+    // Draw image
+    Gdiplus::Graphics g(hdcMem);
+    g.SetInterpolationMode(InterpolationModeNearestNeighbor);
+    g.SetPixelOffsetMode(PixelOffsetModeNone);
+    Rect gdirect(0, 0, 200, 200);
+    g.DrawImage(img, gdirect);
 
-    // Render the image into the offscreen DC.
-    SetBkMode(hdcMem, TRANSPARENT);
-    SetTextColor(hdcMem, GetSysColor(COLOR_WINDOWTEXT));
-    DrawText(hdcMem,
-        szCaption,
-        -1,
-        &rc,
-        DT_CENTER);
-
-    if (hfntOld) {
-        SelectObject(hdcMem, hfntOld);
-    }
-
-    // Blt the changes to the screen DC.
-    BitBlt(lpPS->hdc,
-        rc.left, rc.top,
-        rc.right - rc.left, rc.bottom - rc.top,
-        hdcMem,
-        0, 0,
-        SRCCOPY);
 
     // Done with off-screen bitmap and DC.
+    POINT ptSrc = { 0 };
+    POINT ptDest = { rc.left, rc.top };
+    BOOL bRet = UpdateLayeredWindow(
+        hWnd,
+        hdc,
+        &ptDest,
+        &szBmp,
+        hdcMem,
+        &ptSrc,
+        0,
+        &bf,
+        ULW_ALPHA);
     SelectObject(hdcMem, hbmOld);
     DeleteObject(hbmMem);
     DeleteDC(hdcMem);
+    ReleaseDC(NULL, hdc);
 }
 
 
@@ -310,10 +285,82 @@ void Paint(HWND hWnd, LPPAINTSTRUCT lpPS)
 
 
 
+    // Blt the changes to the screen DC.
+    //BitBlt(lpPS->hdc,
+    //    rc.left, rc.top,
+    //    rc.right - rc.left, rc.bottom - rc.top,
+    //    hdcMem,
+    //    0, 0,
+    //    SRCCOPY);
+
 /*
  * Unused code
   
   
+
+  void Paint(HWND hWnd, LPPAINTSTRUCT lpPS)
+{
+    RECT rc;
+    HDC hdcMem;
+    HBITMAP hbmMem;
+    HGDIOBJ hbmOld;
+    HBRUSH hbrBkGnd;
+    HDC hdc = GetDC(NULL);
+
+    // Blend function
+    BLENDFUNCTION bf;
+    bf.BlendOp = AC_SRC_OVER;
+    bf.BlendFlags = 0;
+    bf.SourceConstantAlpha = 0xff;
+    bf.AlphaFormat = AC_SRC_ALPHA;
+
+    // Get the size of the client rectangle.
+    GetClientRect(hWnd, &rc);
+
+    // Create a compatible DC.
+    hdcMem = CreateCompatibleDC(hdc);
+
+    // Create a bitmap big enough for our client rectangle.
+    hbmMem = CreateCompatibleBitmap(hdc,
+        rc.right - rc.left,
+        rc.bottom - rc.top);
+
+    // Select the bitmap into the off-screen DC.
+    hbmOld = SelectObject(hdcMem, hbmMem);
+
+    // Bitmap
+    BITMAP bm;
+    GetObject(hbmMem, sizeof(bm), &bm);
+    SIZE szBmp = { bm.bmWidth, bm.bmHeight };
+
+    // Draw image
+    Gdiplus::Graphics g(hdcMem);
+    g.Clear(Gdiplus::Color(10, 0, 0, 0));
+    g.SetInterpolationMode(InterpolationModeNearestNeighbor);
+    g.SetPixelOffsetMode(PixelOffsetModeNone);
+    Rect gdirect(0, 0, 200, 200);
+    g.DrawImage(img, gdirect);
+
+
+    // Done with off-screen bitmap and DC.
+    // AlphaBlend(lpPS->hdc, 0, 0, rc.right, rc.bottom, hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, bf);
+    POINT ptSrc = { 0 };
+    POINT ptDest = { rc.left, rc.top };
+    BOOL bRet = UpdateLayeredWindow(
+        hWnd,
+        hdc,
+        &ptDest,
+        &szBmp,
+        hdcMem,
+        &ptSrc,
+        RGB(255, 255, 255),
+        &bf,
+        ULW_COLORKEY);
+    SelectObject(hdcMem, hbmOld);
+    DeleteObject(hbmMem);
+    DeleteDC(hdcMem);
+}
+
   
  
  
