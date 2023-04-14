@@ -8,6 +8,8 @@
 #include <ObjIdl.h>
 #include <gdiplus.h>
 #include <gdiplusheaders.h>
+#include <gdipluspen.h>
+#include <gdiplusbrush.h>
 #include <uxtheme.h>
 #pragma comment (lib, "uxtheme.lib")
 
@@ -48,11 +50,14 @@ Gdiplus::Image* img;
 GdiplusStartupInput startInput;
 ULONG_PTR gdiToken;
 
-AnimationClip* clip;
+Ralsei* ralsei;
 
 void Paint(HWND hWnd);
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
+    Width = GetSystemMetrics(SM_CXSCREEN);
+    Height = GetSystemMetrics(SM_CYSCREEN) - 1;
+
     GdiplusStartup(&gdiToken, &startInput, NULL);
     const wchar_t CLASS_NAME[] = L"Hello guys!";
 
@@ -82,7 +87,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         CLASS_NAME,
         L"Mello",
         WS_POPUP,
-        20, 20, Width, Height,
+        0, 0, Width, Height,
 
         NULL,
         NULL,
@@ -96,14 +101,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         return 0;
     }
 
-    img = Gdiplus::Image::FromFile(L"deltarune-sprites\\ralsei\\spr_ralseib_idle(0).png");
-    if (img->GetLastStatus() != Gdiplus::Ok)
-    {
-        MessageBoxA(NULL, "The hell?", "Image not loaded", MB_OK);
-        exit(0);
-    }
-    clip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralseib_idle", 0.2, 5);
-    
+    ralsei = new Ralsei();
 
     MSG msg = { };
     if (!SetForegroundWindow(hWnd)) MessageBox(NULL, L"Can't bring to front", L"", MB_OK);
@@ -132,16 +130,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
                     POINT cPos;
                     GetCursorPos(&cPos);
 
-                    SetWindowPos(
-                        hWnd, NULL,
-                        cPos.x + wndMouseDragOffset.x,
-                        cPos.y + wndMouseDragOffset.y,
-                        -1, -1, SWP_NOSIZE
-                    );
+                    ralsei->x = cPos.x + wndMouseDragOffset.x;
+                    ralsei->y = cPos.y + wndMouseDragOffset.y;
                 }
+                ralsei->Update(1.0/60.0);
                 Paint(hWnd);
                 ShowWindow(hWnd, SW_SHOW);
-                // InvalidateRect(hWnd, NULL, FALSE);
             }
         }
     }
@@ -180,6 +174,8 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_LBUTTONDOWN:
         {
+            SetCapture(hWnd);
+
             if (mouseIsDown == -1)
             {
                 mouseIsDown = 0;
@@ -193,8 +189,8 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
             if (PtInRect(&wndRect, cPos))
             {
-                wndMouseDragOffset.x = wndRect.left - cPos.x;
-                wndMouseDragOffset.y = wndRect.top - cPos.y;
+                wndMouseDragOffset.x = ralsei->x - cPos.x;
+                wndMouseDragOffset.y = ralsei->y - cPos.y;
                 mouseIsDown = 1;
             }
             return 0;
@@ -202,15 +198,17 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_LBUTTONUP:
         {
+            ReleaseCapture();
+            ralsei->vely = -200;
             mouseIsDown = false;
             return 0;
         }
 
-        case WM_ERASEBKGND: return (LRESULT)1; // Tell Windows we handle the background erase, to prevent flickering ig...
+        case WM_ERASEBKGND: return (LRESULT)1; // we handle background erase
 
         case WM_DESTROY:
         {
-            delete clip;
+            delete ralsei; // Um... Kris...
             GdiplusShutdown(gdiToken);
             PostQuitMessage(0);
             return 0;
@@ -256,12 +254,27 @@ void Paint(HWND hWnd)
     GetObject(hbmMem, sizeof(bm), &bm);
     SIZE szBmp = { bm.bmWidth, bm.bmHeight };
 
-    // Draw image
+    // Draw init
     Gdiplus::Graphics g(hdcMem);
     g.SetInterpolationMode(InterpolationModeNearestNeighbor);
-    g.SetPixelOffsetMode(PixelOffsetModeNone);
-    Rect gdirect(0, 0, 200, 200);
-    g.DrawImage(clip->Animate(1 / 60.0), gdirect);
+    g.SetPixelOffsetMode(PixelOffsetModeHalf);
+    Gdiplus::Pen pen(Color(255, 255, 255), 5);
+    Gdiplus::Pen pen2(Color(255, 0, 0, 0), 250);
+
+    // Draw dialog box
+    RectF digrect(ralsei->x - 250, ralsei->y - 250, 500, 150);
+    pen.SetAlignment(PenAlignmentInset);
+    pen2.SetAlignment(PenAlignmentInset);
+    g.DrawRectangle(&pen2, digrect);
+    g.DrawRectangle(&pen, digrect);    
+
+
+    // ...draw me?
+    auto cl = ralsei->GetSprite();
+    auto p = ralsei->GetRenderPosition();
+    auto s = ralsei->GetRenderDimension();
+    Rect rrect(p.x, p.y, s.x, s.y);
+    g.DrawImage(cl, rrect);
 
 
     // Done with off-screen bitmap and DC.

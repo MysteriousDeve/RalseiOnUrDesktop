@@ -34,7 +34,8 @@ public:
 		this->stepTime = stepTime;
 		this->count = count;
 		this->loopMode = loopMode;
-		Load();
+		Load(); 
+		Reset();
 	}
 
 	void Load()
@@ -50,7 +51,7 @@ public:
 		}
 	}
 
-	Gdiplus::Image* Animate(double dt)
+	void Animate(double dt)
 	{
 		currentTime += dt;
 		if (currentTime >= stepTime)
@@ -68,7 +69,18 @@ public:
 				}
 			}
 		}
+	}
+
+	Gdiplus::Image* GetCurrent()
+	{
 		return images[index];
+	}
+
+	void Reset()
+	{
+		isPlaying = true;
+		index = 0;
+		currentTime = 0;
 	}
 };
 
@@ -79,11 +91,105 @@ public:
 };
 
 
+
+enum RalseiState
+{
+	Front,
+	Left,
+	Back,
+	Right
+};
+
+struct Vector2
+{
+	double x, y;
+	Vector2(double x, double y)
+	{
+		this->x = x;
+		this->y = y;
+	}
+};
+
 class Ralsei
 {
+private:
+	AnimationClip* frontClip;
+	AnimationClip* backClip;
+	AnimationClip* leftClip;
+	AnimationClip* rightClip;
+
+	RalseiState state = RalseiState::Front;
+	double internalTime = 0;
+	double lowerBound = 600;
+
+	double gravity = 800;
+	double pivotx = 0.5, pivoty = 1;
+	double ppx = 0, ppy = 0;
+
 public:
-	AnimationClip clip;
+	double vely = 0;
+	double x = 300, y = 100;
+	double scale = 5;
+
+	Ralsei()
+	{
+		frontClip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralseid", 0.2, 1);		
+		leftClip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralseil", 0.2, 4);
+		backClip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralseiu", 0.2, 1);
+		rightClip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralseir", 0.2, 4);
+	}
+
+	void Update(double dt)
+	{
+		internalTime += dt;
+		state = (RalseiState)((int)(internalTime / 2.0) % 4);
+
+		switch (state)
+		{
+		case Front: frontClip->Animate(dt); break;
+		case Left: leftClip->Animate(dt); x -= 100 * dt; break;
+		case Back: backClip->Animate(dt); break;
+		case Right: rightClip->Animate(dt); x += 100 * dt; break;
+		default: break;
+		}
+
+		vely += gravity * dt;
+		y += vely * dt;
+		if (y > lowerBound)
+		{
+			y = lowerBound;
+			vely = 0;
+		}
+	}
+
+	Gdiplus::Image* GetSprite() 
+	{
+		Gdiplus::Image* i = NULL;
+		switch (state)
+		{
+		case Front: i = frontClip->GetCurrent();
+		case Left: i = leftClip->GetCurrent();
+		case Back: i = backClip->GetCurrent();
+		case Right: i = rightClip->GetCurrent();
+		default: return NULL;
+		}
+		ppx = i->GetWidth();
+		ppy = i->GetHeight();
+		return i;
+	}
+
+	Vector2 GetRenderPosition()
+	{
+		return Vector2(x - pivotx * ppx, y - pivoty * ppy);
+	}
+
+	Vector2 GetRenderDimension()
+	{
+		return Vector2(ppx * scale, ppy * scale);
+	}
 };
+
+
 
 
 
