@@ -51,12 +51,12 @@ HFONT hFont;
 
 Gdiplus::Image* img;
 Gdiplus::PrivateFontCollection fontcollection;
+HANDLE hMyFont = INVALID_HANDLE_VALUE;
 
 GdiplusStartupInput startInput;
 ULONG_PTR gdiToken;
 
 Ralsei* ralsei;
-
 
 void Paint(HWND hWnd);
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
@@ -66,32 +66,31 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
 
     GdiplusStartup(&gdiToken, &startInput, NULL);
 
-    HMODULE hModule = NULL;
+
+
+
+    // Load font
+    HMODULE hModule = GetModuleHandle(NULL);
     HRSRC res = FindResource(hModule, MAKEINTRESOURCE(IDR_FONT1), RT_FONT);
     if (res)
     {
         HGLOBAL mem = LoadResource(hModule, res);
         void* data = LockResource(mem);
         size_t len = SizeofResource(hModule, res);
+        DWORD nFonts = 0;
 
-        Gdiplus::Status nResults = fontcollection.AddMemoryFont(data, len);
-        
-
-        if (nResults != Gdiplus::Ok)
-        {
-            MessageBox(NULL, (to_wstring(nResults)).c_str(), L"What the hell?!", MB_OK);
-        }
+        hMyFont = AddFontMemResourceEx(data, len, nullptr, &nFonts); // Fake install font!
     }
     else MessageBox(NULL, L"Resource (generic) not found", L"What the hell?!", MB_OK);
 
-    const wchar_t CLASS_NAME[] = L"Hello guys!";
 
+
+    const wchar_t CLASS_NAME[] = L"Hello guys!";
     HCURSOR cursor[]
     {
         LoadCursor(0, IDC_ARROW),
         LoadCursor(0, IDC_HAND)
     };
-
     WNDCLASSEX wClass = {};
     wClass.cbClsExtra = NULL;
     wClass.cbSize = sizeof(WNDCLASSEX);
@@ -192,9 +191,9 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
                 DEFAULT_CHARSET,
                 OUT_OUTLINE_PRECIS,
                 CLIP_DEFAULT_PRECIS,
-                CLEARTYPE_QUALITY,
+                DEFAULT_QUALITY,
                 VARIABLE_PITCH,
-                "Segoe UI"
+                "8bitoperator"
             );
         }
 
@@ -235,6 +234,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
         case WM_DESTROY:
         {
             delete ralsei; // Um... Kris...
+            RemoveFontMemResourceEx(hMyFont);
             GdiplusShutdown(gdiToken);
             PostQuitMessage(0);
             return 0;
@@ -295,21 +295,14 @@ void Paint(HWND hWnd)
     g.DrawRectangle(&pen2, digrect);
     g.DrawRectangle(&pen, digrect);    
 
-
-    FontFamily fontFamily;
-    int nNumFound = 0;
-    fontcollection.GetFamilies(1, &fontFamily, &nNumFound);
-    if (nNumFound > 0)
-    {
-        Font font(&fontFamily, 28, FontStyleRegular, UnitPixel);
-
-        StringFormat strformat;
-        wchar_t buf[] = L"The quick brown fox jumps over the lazy dog!";
-        g.DrawString(buf, wcslen(buf), &font,
-            PointF(ralsei->x - 250, ralsei->y - 400), &strformat, &brush);
-    }
-    else MessageBoxA(NULL, (to_string(nNumFound) + " " + to_string(fontcollection.GetFamilyCount())).c_str(), "", NULL);
-
+    LOGFONT MyLogFont = { -80, 0, 0, 0, 0, FALSE, FALSE, FALSE, ANSI_CHARSET,
+                       OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+                       FF_DONTCARE, L"8bitoperator JVE" };
+    Font f(hdcMem, &MyLogFont);
+    StringFormat strformat;
+    wchar_t buf[] = L"The quick brown fox jumps over the lazy dog!";
+    g.DrawString(buf, wcslen(buf), &f,
+        PointF(ralsei->x - 250, ralsei->y - 400), &strformat, &brush);
 
 
     // ...draw me?
