@@ -11,11 +11,15 @@
 #include <gdipluspen.h>
 #include <gdiplusbrush.h>
 #include <uxtheme.h>
+#include <atlstr.h>
+#include "resource.h"
+
 #pragma comment (lib, "uxtheme.lib")
 
-#include "ImageLoader.cpp"
+#include "ImageLoader.h"
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment (lib,"msimg32.lib")
+
 
 
 
@@ -46,11 +50,13 @@ BITMAP bmp;
 HFONT hFont;
 
 Gdiplus::Image* img;
+Gdiplus::PrivateFontCollection fontcollection;
 
 GdiplusStartupInput startInput;
 ULONG_PTR gdiToken;
 
 Ralsei* ralsei;
+
 
 void Paint(HWND hWnd);
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
@@ -59,6 +65,25 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     Height = GetSystemMetrics(SM_CYSCREEN) - 1;
 
     GdiplusStartup(&gdiToken, &startInput, NULL);
+
+    HMODULE hModule = NULL;
+    HRSRC res = FindResource(hModule, MAKEINTRESOURCE(IDR_FONT1), RT_FONT);
+    if (res)
+    {
+        HGLOBAL mem = LoadResource(hModule, res);
+        void* data = LockResource(mem);
+        size_t len = SizeofResource(hModule, res);
+
+        Gdiplus::Status nResults = fontcollection.AddMemoryFont(data, len);
+        
+
+        if (nResults != Gdiplus::Ok)
+        {
+            MessageBox(NULL, (to_wstring(nResults)).c_str(), L"What the hell?!", MB_OK);
+        }
+    }
+    else MessageBox(NULL, L"Resource (generic) not found", L"What the hell?!", MB_OK);
+
     const wchar_t CLASS_NAME[] = L"Hello guys!";
 
     HCURSOR cursor[]
@@ -85,7 +110,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     (
         WS_EX_TOPMOST | WS_EX_LAYERED,
         CLASS_NAME,
-        L"Mello",
+        L"Hello!",
         WS_POPUP,
         0, 0, Width, Height,
 
@@ -132,6 +157,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
 
                     ralsei->x = cPos.x + wndMouseDragOffset.x;
                     ralsei->y = cPos.y + wndMouseDragOffset.y;
+                    ralsei->vely = 0;
                 }
                 ralsei->Update(1.0/60.0);
                 Paint(hWnd);
@@ -260,13 +286,30 @@ void Paint(HWND hWnd)
     g.SetPixelOffsetMode(PixelOffsetModeHalf);
     Gdiplus::Pen pen(Color(255, 255, 255), 5);
     Gdiplus::Pen pen2(Color(255, 0, 0, 0), 250);
+    Gdiplus::SolidBrush brush(Color(255, 255, 255, 255));
 
     // Draw dialog box
-    RectF digrect(ralsei->x - 250, ralsei->y - 250, 500, 150);
+    RectF digrect(ralsei->x - 250, ralsei->y - 400, 500, 150);
     pen.SetAlignment(PenAlignmentInset);
     pen2.SetAlignment(PenAlignmentInset);
     g.DrawRectangle(&pen2, digrect);
     g.DrawRectangle(&pen, digrect);    
+
+
+    FontFamily fontFamily;
+    int nNumFound = 0;
+    fontcollection.GetFamilies(1, &fontFamily, &nNumFound);
+    if (nNumFound > 0)
+    {
+        Font font(&fontFamily, 28, FontStyleRegular, UnitPixel);
+
+        StringFormat strformat;
+        wchar_t buf[] = L"The quick brown fox jumps over the lazy dog!";
+        g.DrawString(buf, wcslen(buf), &font,
+            PointF(ralsei->x - 250, ralsei->y - 400), &strformat, &brush);
+    }
+    else MessageBoxA(NULL, (to_string(nNumFound) + " " + to_string(fontcollection.GetFamilyCount())).c_str(), "", NULL);
+
 
 
     // ...draw me?
@@ -299,104 +342,3 @@ void Paint(HWND hWnd)
 
 
 
-
-
-
-
-    // Blt the changes to the screen DC.
-    //BitBlt(lpPS->hdc,
-    //    rc.left, rc.top,
-    //    rc.right - rc.left, rc.bottom - rc.top,
-    //    hdcMem,
-    //    0, 0,
-    //    SRCCOPY);
-
-/*
- * Unused code
-  
-  
-
-  void Paint(HWND hWnd, LPPAINTSTRUCT lpPS)
-{
-    RECT rc;
-    HDC hdcMem;
-    HBITMAP hbmMem;
-    HGDIOBJ hbmOld;
-    HBRUSH hbrBkGnd;
-    HDC hdc = GetDC(NULL);
-
-    // Blend function
-    BLENDFUNCTION bf;
-    bf.BlendOp = AC_SRC_OVER;
-    bf.BlendFlags = 0;
-    bf.SourceConstantAlpha = 0xff;
-    bf.AlphaFormat = AC_SRC_ALPHA;
-
-    // Get the size of the client rectangle.
-    GetClientRect(hWnd, &rc);
-
-    // Create a compatible DC.
-    hdcMem = CreateCompatibleDC(hdc);
-
-    // Create a bitmap big enough for our client rectangle.
-    hbmMem = CreateCompatibleBitmap(hdc,
-        rc.right - rc.left,
-        rc.bottom - rc.top);
-
-    // Select the bitmap into the off-screen DC.
-    hbmOld = SelectObject(hdcMem, hbmMem);
-
-    // Bitmap
-    BITMAP bm;
-    GetObject(hbmMem, sizeof(bm), &bm);
-    SIZE szBmp = { bm.bmWidth, bm.bmHeight };
-
-    // Draw image
-    Gdiplus::Graphics g(hdcMem);
-    g.Clear(Gdiplus::Color(10, 0, 0, 0));
-    g.SetInterpolationMode(InterpolationModeNearestNeighbor);
-    g.SetPixelOffsetMode(PixelOffsetModeNone);
-    Rect gdirect(0, 0, 200, 200);
-    g.DrawImage(img, gdirect);
-
-
-    // Done with off-screen bitmap and DC.
-    // AlphaBlend(lpPS->hdc, 0, 0, rc.right, rc.bottom, hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, bf);
-    POINT ptSrc = { 0 };
-    POINT ptDest = { rc.left, rc.top };
-    BOOL bRet = UpdateLayeredWindow(
-        hWnd,
-        hdc,
-        &ptDest,
-        &szBmp,
-        hdcMem,
-        &ptSrc,
-        RGB(255, 255, 255),
-        &bf,
-        ULW_COLORKEY);
-    SelectObject(hdcMem, hbmOld);
-    DeleteObject(hbmMem);
-    DeleteDC(hdcMem);
-}
-
-  
- 
- 
-
-            FillRect(hdc, &ps.rcPaint, bkgClr);
-
-
-            RECT flybarRect;
-            flybarRect.right = wrect.right - wrect.left;
-            flybarRect.bottom = flybarSize;
-            SetRect(&textRect, 10, 0, wrect.right - 10, flybarSize);
-            FillRect(hdc, &flybarRect, flybarClr);
-
-
-            LPCWSTR msg = L"Hello";
-            SelectObject(hdc, hFont);
-            SetTextColor(hdc, RGB(255, 255, 255));
-            SetBkMode(hdc, TRANSPARENT);
-            DrawText(hdc, msg, -1, &textRect, DT_SINGLELINE | DT_MODIFYSTRING | DT_VCENTER);
-
-*/

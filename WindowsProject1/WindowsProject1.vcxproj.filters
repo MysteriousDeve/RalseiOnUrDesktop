@@ -27,6 +27,9 @@
     <ClInclude Include="WindowsProject1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ImageLoader.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WindowsProject1.cpp">
@@ -51,5 +54,21 @@
     <Image Include="WindowsProject1.ico">
       <Filter>Resource Files</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="font\8bitoperator\8bitoperator.ttf" />
+    <Font Include="font\8bitoperator_jve\8bitoperator_jve.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="font\8bitoperator\readme.txt" />
+    <Text Include="font\8bitoperator_jve\readme.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ttf1.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="myfont1.bin">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
