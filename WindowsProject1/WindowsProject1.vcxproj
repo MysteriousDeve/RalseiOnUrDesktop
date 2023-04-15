@@ -136,6 +136,7 @@
   <ItemGroup>
     <ClCompile Include="ImageLoader.cpp" />
     <ClCompile Include="Scrap.cpp" />
+    <ClCompile Include="TextPrinter.cpp" />
     <ClCompile Include="WindowsProject1.cpp" />
   </ItemGroup>
   <ItemGroup>

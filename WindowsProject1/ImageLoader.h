@@ -122,11 +122,14 @@ private:
 	double gravity = 800;
 	double pivotx = 0.5, pivoty = 1;
 	double ppx = 0.5, ppy = 1;
+	double damping = 6;
 
 public:
-	double vely = 0;
+	double velx = 0, vely = 0;
 	double x = 300, y = 100;
 	double scale = 5;
+
+	bool isHolding = false;
 
 	Ralsei()
 	{
@@ -139,7 +142,12 @@ public:
 	void Update(double dt)
 	{
 		internalTime += dt;
-		state = (RalseiState)((int)(internalTime / 2.0) % 4);
+		if (isHolding)
+		{
+			state = RalseiState::Front;
+		}
+		else state = (RalseiState)((int)(internalTime / 2.0) % 4);
+
 
 		switch (state)
 		{
@@ -150,6 +158,14 @@ public:
 		default: break;
 		}
 
+		// Damping
+		velx -= velx * damping * dt;
+		if (vely < 0) vely -= vely * damping * dt;
+
+		// Update velocity x
+		x += velx * dt;
+
+		// Update velocity y
 		vely += gravity * dt;
 		y += vely * dt;
 		if (y > lowerBound)
@@ -157,6 +173,11 @@ public:
 			y = lowerBound;
 			vely = 0;
 		}
+	}
+
+	void SetVelocity(double vx, double vy)
+	{
+		velx = vx; vely = vy;
 	}
 
 

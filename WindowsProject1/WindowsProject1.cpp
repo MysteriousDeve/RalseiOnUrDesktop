@@ -12,6 +12,9 @@
 #include <gdiplusbrush.h>
 #include <uxtheme.h>
 #include <atlstr.h>
+#include <shellscalingapi.h>
+#pragma comment (lib,"shcore.lib")
+
 #include "resource.h"
 
 #pragma comment (lib, "uxtheme.lib")
@@ -34,6 +37,7 @@ int MinHeight = 100;
 
 int mouseIsDown = -1;
 POINT wndMouseDragOffset;
+POINT wndPosOld;
 
 HBITMAP drawBuffer;
 
@@ -43,6 +47,7 @@ HBRUSH bkgClr = CreateSolidBrush(RGB(16, 16, 16));
 HBRUSH flybarClr = CreateSolidBrush(RGB(36, 36, 36));
 RECT flybarRect;
 int flybarSize = 30;
+int verticalDPI = 96;
 
 char mode = -1;
 
@@ -58,16 +63,17 @@ ULONG_PTR gdiToken;
 
 Ralsei* ralsei;
 
+constexpr long double delta = 1 / 60.0;
+
 void Paint(HWND hWnd);
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
+    SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+
     Width = GetSystemMetrics(SM_CXSCREEN);
     Height = GetSystemMetrics(SM_CYSCREEN) - 1;
 
     GdiplusStartup(&gdiToken, &startInput, NULL);
-
-
-
 
     // Load font
     HMODULE hModule = GetModuleHandle(NULL);
@@ -144,7 +150,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         else
         {
             long double milisec = (hrc::now() - timer).count() / (long double)1000000.0;
-            if (milisec >= 1000 / (long double)60.0)
+            if (milisec >= delta * 1000)
             {
                 timer = hrc::now();
 
@@ -156,9 +162,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
 
                     ralsei->x = cPos.x + wndMouseDragOffset.x;
                     ralsei->y = cPos.y + wndMouseDragOffset.y;
-                    ralsei->vely = 0;
+                    ralsei->SetVelocity(0, 0);
+
+                    wndPosOld = cPos;
                 }
-                ralsei->Update(1.0/60.0);
+                ralsei->Update(delta);
                 Paint(hWnd);
                 ShowWindow(hWnd, SW_SHOW);
             }
@@ -180,7 +188,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
             wndRect.bottom = flybarSize;
 
             hFont = CreateFontA(
-                20,
+                40,
                 0,
                 0,
                 0,
@@ -191,32 +199,33 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
                 DEFAULT_CHARSET,
                 OUT_OUTLINE_PRECIS,
                 CLIP_DEFAULT_PRECIS,
-                DEFAULT_QUALITY,
-                VARIABLE_PITCH,
-                "8bitoperator"
+                CLEARTYPE_QUALITY,
+                DEFAULT_PITCH,
+                "8bitoperator JVE"
             );
         }
 
         case WM_LBUTTONDOWN:
         {
-            SetCapture(hWnd);
-
             if (mouseIsDown == -1)
             {
                 mouseIsDown = 0;
                 return 0;
             }
+            SetCapture(hWnd);
+
             RECT wndRect;
             GetWindowRect(hWnd, &wndRect);
 
             POINT cPos;
             GetCursorPos(&cPos);
-
             if (PtInRect(&wndRect, cPos))
             {
                 wndMouseDragOffset.x = ralsei->x - cPos.x;
                 wndMouseDragOffset.y = ralsei->y - cPos.y;
                 mouseIsDown = 1;
+                wndPosOld = cPos;
+                ralsei->isHolding = true;
             }
             return 0;
         }
@@ -224,7 +233,13 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
         case WM_LBUTTONUP:
         {
             ReleaseCapture();
-            ralsei->vely = -200;
+
+            POINT cPos;
+            GetCursorPos(&cPos);
+
+            ralsei->SetVelocity((cPos.x - wndPosOld.x) / delta, (cPos.y - wndPosOld.y) / delta);
+            ralsei->isHolding = false;
+
             mouseIsDown = false;
             return 0;
         }
@@ -293,16 +308,16 @@ void Paint(HWND hWnd)
     pen.SetAlignment(PenAlignmentInset);
     pen2.SetAlignment(PenAlignmentInset);
     g.DrawRectangle(&pen2, digrect);
-    g.DrawRectangle(&pen, digrect);    
+    g.DrawRectangle(&pen, digrect);
 
-    LOGFONT MyLogFont = { -80, 0, 0, 0, 0, FALSE, FALSE, FALSE, ANSI_CHARSET,
-                       OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
-                       FF_DONTCARE, L"8bitoperator JVE" };
-    Font f(hdcMem, &MyLogFont);
+    Font f(hdcMem, hFont);
     StringFormat strformat;
-    wchar_t buf[] = L"The quick brown fox jumps over the lazy dog!";
+    wchar_t buf[] = L"The quick brown\nfox jumps over\nthe lazy dog!";
     g.DrawString(buf, wcslen(buf), &f,
-        PointF(ralsei->x - 250, ralsei->y - 400), &strformat, &brush);
+        PointF(ralsei->x - 250 + 45, ralsei->y - 400 + 10), &strformat, &brush);
+    wchar_t buf2[] = L"*";
+    g.DrawString(buf2, wcslen(buf2), &f,
+        PointF(ralsei->x - 250 + 15, ralsei->y - 400 + 10), &strformat, &brush);
 
 
     // ...draw me?
