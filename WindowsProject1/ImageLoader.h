@@ -130,7 +130,7 @@ private:
 	double damping = 6;
 
 	double lowerBound = 1000;
-	double fallShockVelThreshold = 750;
+	double fallShockVelThreshold = 800;
 	double shockTime = 3;
 	double leftLim = -300, rightLim = 2320;
 
@@ -141,7 +141,7 @@ private:
 	bool isSpeaking;
 public:	
 	double velx = 0, vely = 0, vxo = 0, vyo = 0;
-	double x = 300, y = 100;
+	double x = 300, y = 600;
 	double scale = 5;
 	bool isHolding = false;
 	bool isFalling = false;
