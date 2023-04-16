@@ -132,10 +132,12 @@ private:
 	double lowerBound = 1000;
 	double fallShockVelThreshold = 750;
 	double shockTime = 3;
+	double leftLim = -300, rightLim = 2320;
 
 	double val_veldiffy = 0;
+	TextPrinter textPrinter = { L"Hello :D" };
 
-	TextPrinter textPrinter = { L"" };
+	bool isSpeaking;
 public:	
 	double velx = 0, vely = 0, vxo = 0, vyo = 0;
 	double x = 300, y = 100;
@@ -165,6 +167,14 @@ public:
 
 		// Update velocity x
 		x += velx * dt;
+		if (x < leftLim)
+		{
+			x += rightLim - leftLim;
+		}
+		if (x > rightLim)
+		{
+			x -= rightLim - leftLim;
+		}
 
 		// Update velocity y
 		vely += gravity * dt;
@@ -192,10 +202,16 @@ public:
 		UpdatePhysics(dt);
 		if (isHolding)
 		{
+			isSpeaking = false;
 			if (internalTime >= 0) state = RalseiState::Front;
 		}
 		else
 		{
+			if (!isSpeaking)
+			{
+				isSpeaking = true;
+				textPrinter.Reset();
+			}
 			if (vely >= fallShockVelThreshold)
 			{
 				if (internalTime >= 0)
@@ -214,6 +230,7 @@ public:
 					{
 						internalTime = -shockTime;
 						state = RalseiState::Fell;
+						PlaySound(L"sound\\snd_splat.wav", NULL, SND_FILENAME | SND_NOSTOP | SND_ASYNC);
 					}
 					if (internalTime >= 8) IdleMode(dt);
 				}
@@ -224,6 +241,7 @@ public:
 				state = RalseiState::Fell;
 			}
 		}
+		textPrinter.Update(dt);
 	}
 
 	bool isTouchingGround()
@@ -261,5 +279,15 @@ public:
 	Vector2 GetRenderDimension()
 	{
 		return Vector2(ppx * scale, ppy * scale);
+	}
+
+	bool IsSpeaking()
+	{
+		return isSpeaking;
+	}
+
+	CString GetCurrentSpeech()
+	{
+		return textPrinter.GetCurrent();
 	}
 };

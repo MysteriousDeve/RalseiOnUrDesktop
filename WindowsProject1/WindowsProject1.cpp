@@ -22,7 +22,7 @@
 #include "ImageLoader.h"
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment (lib,"msimg32.lib")
-
+#pragma comment (lib,"winmm.lib")
 
 
 
@@ -57,7 +57,6 @@ HFONT hFont;
 Gdiplus::Image* img;
 Gdiplus::PrivateFontCollection fontcollection;
 HANDLE hMyFont = INVALID_HANDLE_VALUE;
-TextPrinter textPrinter(L"The quick brown\nfox jumps over\nthe lazy dog!");
 
 GdiplusStartupInput startInput;
 ULONG_PTR gdiToken;
@@ -167,8 +166,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
 
                     wndPosOld = cPos;
                 }
-                if (textPrinter.isDone()) textPrinter.Reset();
-                textPrinter.Update(delta);
                 ralsei->Update(delta);
                 Paint(hWnd);
                 ShowWindow(hWnd, SW_SHOW);
@@ -305,20 +302,24 @@ void Paint(HWND hWnd)
     Gdiplus::Pen pen2(Color(255, 0, 0, 0), 250);
     Gdiplus::SolidBrush brush(Color(255, 255, 255, 255));
 
-    // Draw dialog box
-    RectF digrect(ralsei->x - 250, ralsei->y - 400, 500, 150);
-    pen.SetAlignment(PenAlignmentInset);
-    pen2.SetAlignment(PenAlignmentInset);
-    g.DrawRectangle(&pen2, digrect);
-    g.DrawRectangle(&pen, digrect);
+    if (ralsei->IsSpeaking())
+    {
+        // Draw dialog box
+        RectF digrect(ralsei->x - 250, ralsei->y - 400, 500, 150);
+        pen.SetAlignment(PenAlignmentInset);
+        pen2.SetAlignment(PenAlignmentInset);
+        g.DrawRectangle(&pen2, digrect);
+        g.DrawRectangle(&pen, digrect);
 
-    Font f(hdcMem, hFont);
-    StringFormat strformat;
-    CString cstr = textPrinter.GetCurrent();
-    g.DrawString(cstr, wcslen(cstr), &f,
-        PointF(ralsei->x - 250 + 45, ralsei->y - 400 + 10), &strformat, &brush);
-    g.DrawString(L"*", wcslen(L"*"), &f,
-        PointF(ralsei->x - 250 + 15, ralsei->y - 400 + 10), &strformat, &brush);
+        // Draw text
+        Font f(hdcMem, hFont);
+        StringFormat strformat;
+        ATL::CString cstr = ralsei->GetCurrentSpeech();
+        g.DrawString(cstr, wcslen(cstr), &f,
+            PointF(ralsei->x - 250 + 45, ralsei->y - 400 + 10), &strformat, &brush);
+        g.DrawString(L"*", wcslen(L"*"), &f,
+            PointF(ralsei->x - 250 + 15, ralsei->y - 400 + 10), &strformat, &brush);
+    }
 
 
     // ...draw me?
