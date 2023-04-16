@@ -135,7 +135,8 @@ private:
 	double leftLim = -300, rightLim = 2320;
 
 	double val_veldiffy = 0;
-	TextPrinter textPrinter = { L"Hello :D" };
+	TextPrinter textPrinter = { L"Hello! I'm Ralsei.", false };
+	ISoundEngine* engine;
 
 	bool isSpeaking;
 public:	
@@ -143,6 +144,7 @@ public:
 	double x = 300, y = 100;
 	double scale = 5;
 	bool isHolding = false;
+	bool isFalling = false;
 
 	Ralsei()
 	{
@@ -154,6 +156,8 @@ public:
 		fellClip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralsei_fell", 0.2, 1);
 
 		vxo = velx; vyo = vely;
+		engine = createIrrKlangDevice();
+
 	}
 
 	void UpdatePhysics(double dt)
@@ -207,31 +211,39 @@ public:
 		}
 		else
 		{
-			if (!isSpeaking)
-			{
-				isSpeaking = true;
-				textPrinter.Reset();
-			}
 			if (vely >= fallShockVelThreshold)
 			{
 				if (internalTime >= 0)
 				{
+					if (!isFalling)
+					{
+						isFalling = true;
+						engine->play2D("sound\\snd_ralsei_yell.wav");
+					}
 					state = RalseiState::Shock;
 					internalTime = 0;
 				}
 			}
 			else
 			{
+				isFalling = false;
 				state = RalseiState::Front;
 				if (isTouchingGround())
 				{
-					if (internalTime < 0) state = RalseiState::Fell;
-					else if (val_veldiffy < -1500)
+					if (internalTime < 0)
 					{
-						internalTime = -shockTime;
 						state = RalseiState::Fell;
-						PlaySound(L"sound\\snd_splat.wav", NULL, SND_FILENAME | SND_NOSTOP | SND_ASYNC);
 					}
+					else
+					{
+						if (val_veldiffy < -1500)
+						{
+							internalTime = -shockTime;
+							state = RalseiState::Fell;
+							engine->play2D("sound\\snd_splat.wav");
+						}
+					}
+
 					if (internalTime >= 8) IdleMode(dt);
 				}
 			}
@@ -239,6 +251,13 @@ public:
 			{
 				internalTime = -shockTime;
 				state = RalseiState::Fell;
+			}
+
+			if (isTouchingGround() && !isSpeaking && internalTime >= 0)
+			{
+				isSpeaking = true;
+				textPrinter.Reset();
+				textPrinter.isPlaying = true;
 			}
 		}
 		textPrinter.Update(dt);

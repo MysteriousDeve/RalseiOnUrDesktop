@@ -1,6 +1,8 @@
 #pragma once
 
 #include <atlstr.h>
+#include <irrKlang/irrKlang.h>
+using namespace irrklang;
 
 class TextPrinter
 {
@@ -10,17 +12,22 @@ private:
 	CString str;
 	CString strCopy;
 	CString current;
+	ISoundEngine* engine;
 public:
-	bool isHolding = false;
+	bool isPlaying = false;
 
-	TextPrinter(CString str)
+	TextPrinter(CString str, bool isPlaying = true)
 	{
 		this->str = str;
+		this->isPlaying = isPlaying;
 		Reset();
+		engine = createIrrKlangDevice();
 	}
 
 	void Update(double dt)
 	{
+		if (!isPlaying) return;
+
 		internalTime += dt;
 		if (internalTime >= rate)
 		{
@@ -33,6 +40,7 @@ public:
 
 				if (s != L" " || s != L"\n")
 				{
+					engine->play2D("sound\\snd_txtral_ch1.wav");
 					break;
 				}
 			}

@@ -23,7 +23,7 @@
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment (lib,"msimg32.lib")
 #pragma comment (lib,"winmm.lib")
-
+#pragma comment (lib, "irrKlang.lib")
 
 
 using namespace std;
