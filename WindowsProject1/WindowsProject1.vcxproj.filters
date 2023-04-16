@@ -30,6 +30,9 @@
     <ClInclude Include="ImageLoader.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="TextPrinter.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WindowsProject1.cpp">

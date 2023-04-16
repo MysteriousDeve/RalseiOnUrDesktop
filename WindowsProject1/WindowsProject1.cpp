@@ -15,8 +15,8 @@
 #include <shellscalingapi.h>
 #pragma comment (lib,"shcore.lib")
 
+#include "TextPrinter.h"
 #include "resource.h"
-
 #pragma comment (lib, "uxtheme.lib")
 
 #include "ImageLoader.h"
@@ -57,6 +57,7 @@ HFONT hFont;
 Gdiplus::Image* img;
 Gdiplus::PrivateFontCollection fontcollection;
 HANDLE hMyFont = INVALID_HANDLE_VALUE;
+TextPrinter textPrinter(L"The quick brown\nfox jumps over\nthe lazy dog!");
 
 GdiplusStartupInput startInput;
 ULONG_PTR gdiToken;
@@ -166,6 +167,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
 
                     wndPosOld = cPos;
                 }
+                if (textPrinter.isDone()) textPrinter.Reset();
+                textPrinter.Update(delta);
                 ralsei->Update(delta);
                 Paint(hWnd);
                 ShowWindow(hWnd, SW_SHOW);
@@ -260,7 +263,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
 
 
-
 void Paint(HWND hWnd)
 {
     RECT rc;
@@ -312,11 +314,10 @@ void Paint(HWND hWnd)
 
     Font f(hdcMem, hFont);
     StringFormat strformat;
-    wchar_t buf[] = L"The quick brown\nfox jumps over\nthe lazy dog!";
-    g.DrawString(buf, wcslen(buf), &f,
+    CString cstr = textPrinter.GetCurrent();
+    g.DrawString(cstr, wcslen(cstr), &f,
         PointF(ralsei->x - 250 + 45, ralsei->y - 400 + 10), &strformat, &brush);
-    wchar_t buf2[] = L"*";
-    g.DrawString(buf2, wcslen(buf2), &f,
+    g.DrawString(L"*", wcslen(L"*"), &f,
         PointF(ralsei->x - 250 + 15, ralsei->y - 400 + 10), &strformat, &brush);
 
 

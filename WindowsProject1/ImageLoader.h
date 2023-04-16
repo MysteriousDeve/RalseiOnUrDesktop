@@ -1,12 +1,14 @@
 #pragma once
 
 #include <Windows.h>
+#include <atlstr.h>
 #include <Gdiplus.h>
 #include <algorithm>
 #include <math.h>
 #include <string>
 #include <vector>
 #include <fileapi.h>
+#include "TextPrinter.h"
 
 using namespace std;
 
@@ -32,7 +34,9 @@ enum RalseiState
 	Front,
 	Left,
 	Back,
-	Right
+	Right,
+	Shock,
+	Fell
 };
 
 
@@ -113,10 +117,11 @@ private:
 	AnimationClip* backClip;
 	AnimationClip* leftClip;
 	AnimationClip* rightClip;
+	AnimationClip* shockClip;
+	AnimationClip* fellClip;
 
 	RalseiState state = RalseiState::Front;
 	double internalTime = 0;
-	double lowerBound = 600;
 	Gdiplus::Image* gg = NULL;
 
 	double gravity = 800;
@@ -124,11 +129,17 @@ private:
 	double ppx = 0.5, ppy = 1;
 	double damping = 6;
 
-public:
-	double velx = 0, vely = 0;
+	double lowerBound = 1000;
+	double fallShockVelThreshold = 750;
+	double shockTime = 3;
+
+	double val_veldiffy = 0;
+
+	TextPrinter textPrinter = { L"" };
+public:	
+	double velx = 0, vely = 0, vxo = 0, vyo = 0;
 	double x = 300, y = 100;
 	double scale = 5;
-
 	bool isHolding = false;
 
 	Ralsei()
@@ -137,26 +148,16 @@ public:
 		leftClip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralseil", 0.2, 4);
 		backClip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralseiu", 0.2, 1);
 		rightClip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralseir", 0.2, 4);
+		shockClip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralsei_shock_overworld", 0.2, 1);
+		fellClip = new AnimationClip(L"deltarune-sprites\\ralsei\\spr_ralsei_fell", 0.2, 1);
+
+		vxo = velx; vyo = vely;
 	}
 
-	void Update(double dt)
+	void UpdatePhysics(double dt)
 	{
-		internalTime += dt;
-		if (isHolding)
-		{
-			state = RalseiState::Front;
-		}
-		else state = (RalseiState)((int)(internalTime / 2.0) % 4);
-
-
-		switch (state)
-		{
-		case Front: frontClip->Animate(dt); break;
-		case Left: leftClip->Animate(dt); x -= 100 * dt; break;
-		case Back: backClip->Animate(dt); break;
-		case Right: rightClip->Animate(dt); x += 100 * dt; break;
-		default: break;
-		}
+		// Store velocity
+		vxo = velx; vyo = vely;
 
 		// Damping
 		velx -= velx * damping * dt;
@@ -173,13 +174,67 @@ public:
 			y = lowerBound;
 			vely = 0;
 		}
+		val_veldiffy =  vely - vyo;
+	}
+	void IdleMode(double dt)
+	{
+		state = (RalseiState)((int)(internalTime / 2.0) % 4);
+		switch (state)
+		{
+		case Left: leftClip->Animate(dt); x -= 100 * dt; break;
+		case Right: rightClip->Animate(dt); x += 100 * dt; break;
+		default: break;
+		}
+	}
+	void Update(double dt)
+	{
+		internalTime += dt;
+		UpdatePhysics(dt);
+		if (isHolding)
+		{
+			if (internalTime >= 0) state = RalseiState::Front;
+		}
+		else
+		{
+			if (vely >= fallShockVelThreshold)
+			{
+				if (internalTime >= 0)
+				{
+					state = RalseiState::Shock;
+					internalTime = 0;
+				}
+			}
+			else
+			{
+				state = RalseiState::Front;
+				if (isTouchingGround())
+				{
+					if (internalTime < 0) state = RalseiState::Fell;
+					else if (val_veldiffy < -1500)
+					{
+						internalTime = -shockTime;
+						state = RalseiState::Fell;
+					}
+					if (internalTime >= 8) IdleMode(dt);
+				}
+			}
+			if (internalTime < 0 && !isTouchingGround())
+			{
+				internalTime = -shockTime;
+				state = RalseiState::Fell;
+			}
+		}
+	}
+
+	bool isTouchingGround()
+	{
+		return y - lowerBound > -0.5;
 	}
 
 	void SetVelocity(double vx, double vy)
 	{
 		velx = vx; vely = vy;
 	}
-
 
 	Gdiplus::Image* GetSprite()
 	{
@@ -189,6 +244,8 @@ public:
 		case Left: gg = leftClip->GetCurrent(); break;
 		case Back: gg = backClip->GetCurrent(); break;
 		case Right: gg = rightClip->GetCurrent(); break;
+		case Shock: gg = shockClip->GetCurrent(); break;
+		case Fell: gg = fellClip->GetCurrent(); break;
 		default: gg = NULL; break;
 		}
 		ppx = gg->GetWidth();
