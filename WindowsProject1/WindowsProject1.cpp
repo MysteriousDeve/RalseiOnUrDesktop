@@ -20,6 +20,7 @@
 #pragma comment (lib, "uxtheme.lib")
 
 #include "ImageLoader.h"
+#include "RightClickMenu.h"
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment (lib,"msimg32.lib")
 #pragma comment (lib,"winmm.lib")
@@ -207,6 +208,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_LBUTTONDOWN:
         {
+            rightClickMenu = false;
             if (mouseIsDown == -1)
             {
                 mouseIsDown = 0;
@@ -232,6 +234,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_LBUTTONUP:
         {
+            rightClickMenu = false;
             ReleaseCapture();
 
             POINT cPos;
@@ -241,6 +244,21 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
             ralsei->isHolding = false;
 
             mouseIsDown = false;
+            return 0;
+        }
+
+        case WM_RBUTTONDOWN:
+        {
+            rightClickMenu = false;
+            if (!mouseIsDown) ReleaseCapture();
+            return 0;
+        }
+
+        case WM_RBUTTONUP:
+        {
+            rightClickMenu = true;
+            GetCursorPos(&rightClickMenuPos);
+            SetCapture(hWnd);
             return 0;
         }
 
@@ -301,13 +319,13 @@ void Paint(HWND hWnd)
     Gdiplus::Pen pen(Color(255, 255, 255), 5);
     Gdiplus::Pen pen2(Color(255, 0, 0, 0), 250);
     Gdiplus::SolidBrush brush(Color(255, 255, 255, 255));
+    pen.SetAlignment(PenAlignmentInset);
+    pen2.SetAlignment(PenAlignmentInset);
 
     if (ralsei->IsSpeaking())
     {
         // Draw dialog box
         RectF digrect(ralsei->x - 250, ralsei->y - 400, 500, 150);
-        pen.SetAlignment(PenAlignmentInset);
-        pen2.SetAlignment(PenAlignmentInset);
         g.DrawRectangle(&pen2, digrect);
         g.DrawRectangle(&pen, digrect);
 
@@ -329,6 +347,21 @@ void Paint(HWND hWnd)
     Rect rrect(p.x, p.y, s.x, s.y);
     g.DrawImage(cl, rrect);
 
+
+    if (rightClickMenu)
+    {
+        // Draw dialog box
+        RectF digrect(rightClickMenuPos.x, rightClickMenuPos.y, 200, 40 * 6 + 30);
+        g.DrawRectangle(&pen2, digrect);
+        g.DrawRectangle(&pen, digrect);
+
+        // Draw text
+        Font f(hdcMem, hFont);
+        StringFormat strformat;
+        ATL::CString cstr = "Talk\nIdle Mode\nCommand\nDebug\nAbout\nExit";
+        g.DrawString(cstr, wcslen(cstr), &f,
+            PointF(rightClickMenuPos.x + 15, rightClickMenuPos.y + 10), &strformat, &brush);
+    }
 
     // Done with off-screen bitmap and DC.
     POINT ptSrc = { 0 };

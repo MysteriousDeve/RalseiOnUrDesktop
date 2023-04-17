@@ -135,9 +135,9 @@ private:
 	double leftLim = -300, rightLim = 2320;
 
 	double val_veldiffy = 0;
-	TextPrinter textPrinter = { L"Hello! I'm Ralsei.", false };
 	ISoundEngine* engine;
 
+	TextPrinter textPrinter = { L"Hello! I'm Ralsei.", false, 2 };
 	bool isSpeaking;
 public:	
 	double velx = 0, vely = 0, vxo = 0, vyo = 0;
@@ -247,12 +247,15 @@ public:
 					if (internalTime >= 8) IdleMode(dt);
 				}
 			}
+
+			// keep him in fell mode
 			if (internalTime < 0 && !isTouchingGround())
 			{
 				internalTime = -shockTime;
 				state = RalseiState::Fell;
 			}
 
+			// speaking check
 			if (isTouchingGround() && !isSpeaking && internalTime >= 0)
 			{
 				isSpeaking = true;
@@ -302,7 +305,7 @@ public:
 
 	bool IsSpeaking()
 	{
-		return isSpeaking;
+		return isSpeaking && !textPrinter.IsTimeout();
 	}
 
 	CString GetCurrentSpeech()
