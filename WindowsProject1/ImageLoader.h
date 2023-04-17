@@ -234,14 +234,12 @@ public:
 					{
 						state = RalseiState::Fell;
 					}
-					else
+
+					if (val_veldiffy < -1500)
 					{
-						if (val_veldiffy < -1500)
-						{
-							internalTime = -shockTime;
-							state = RalseiState::Fell;
-							engine->play2D("sound\\snd_splat.wav");
-						}
+						internalTime = -shockTime;
+						state = RalseiState::Fell;
+						engine->play2D("sound\\snd_splat.wav");
 					}
 
 					if (internalTime >= 8) IdleMode(dt);

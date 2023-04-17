@@ -133,6 +133,7 @@
     <ClInclude Include="RightClickMenu.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TextPrinter.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="WindowsProject1.h" />
   </ItemGroup>
   <ItemGroup>

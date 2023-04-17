@@ -21,6 +21,7 @@
 
 #include "ImageLoader.h"
 #include "RightClickMenu.h"
+#include "Utils.h"
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment (lib,"msimg32.lib")
 #pragma comment (lib,"winmm.lib")
@@ -53,11 +54,9 @@ int verticalDPI = 96;
 char mode = -1;
 
 BITMAP bmp;
-HFONT hFont;
 
 Gdiplus::Image* img;
 Gdiplus::PrivateFontCollection fontcollection;
-HANDLE hMyFont = INVALID_HANDLE_VALUE;
 
 GdiplusStartupInput startInput;
 ULONG_PTR gdiToken;
@@ -76,20 +75,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     Height = GetSystemMetrics(SM_CYSCREEN) - 1;
 
     GdiplusStartup(&gdiToken, &startInput, NULL);
-
-    // Load font
-    HMODULE hModule = GetModuleHandle(NULL);
-    HRSRC res = FindResource(hModule, MAKEINTRESOURCE(IDR_FONT1), RT_FONT);
-    if (res)
-    {
-        HGLOBAL mem = LoadResource(hModule, res);
-        void* data = LockResource(mem);
-        size_t len = SizeofResource(hModule, res);
-        DWORD nFonts = 0;
-
-        hMyFont = AddFontMemResourceEx(data, len, nullptr, &nFonts); // Fake install font!
-    }
-    else MessageBox(NULL, L"Resource (generic) not found", L"What the hell?!", MB_OK);
 
 
     // Create windows
@@ -111,6 +96,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     wClass.lpszClassName = CLASS_NAME;
     wClass.style = NULL;
     RegisterClassEx(&wClass);
+
     HWND hWnd = CreateWindowExW
     (
         WS_EX_TOPMOST | WS_EX_LAYERED,
@@ -118,19 +104,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         L"Hello!",
         WS_POPUP,
         0, 0, Width, Height,
-
         NULL,
         NULL,
         hInstance,
         NULL
-    );
+    ); 
+
     if (hWnd == NULL)
     {
         MessageBox(NULL, L"ERROR CREATING WINDOW!", L"ERROR!", MB_OK);
         return 0;
     }
+    ShowWindow(hWnd, SW_SHOW);
 
-    menu = new RightClickMenu{ { L"lol", L"lol2" }, hInstance };
+
+    menu = new RightClickMenu{ { L"Talk", L"Idle Mode", L"About", L"Exit" } };
     ralsei = new Ralsei();
 
     MSG msg = { };
@@ -167,8 +155,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
                     wndPosOld = cPos;
                 }
                 ralsei->Update(delta);
+                menu->Update(delta);
+
                 Paint(hWnd);
-                ShowWindow(hWnd, SW_SHOW);
             }
         }
     }
@@ -179,14 +168,13 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 {
     switch (Message)
     {
+        case WM_INITDIALOG:
+        {
+            return 0;
+        }
+
         case WM_CREATE:
         {
-            RECT wndRect;
-            GetWindowRect(hWnd, &wndRect);
-
-            flybarRect = wndRect;
-            wndRect.bottom = flybarSize;
-
             hFont = CreateFontA(
                 40,
                 0,
@@ -203,22 +191,22 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
                 DEFAULT_PITCH,
                 "8bitoperator JVE"
             );
+            return 0;
         }
 
         case WM_LBUTTONDOWN:
         {
-            if (mouseIsDown == -1)
-            {
-                mouseIsDown = 0;
-                return 0;
-            }
+            POINT cPos;
+            GetCursorPos(&cPos);
+
+            if (menu->IsInMenuRect(cPos)) return 0;
+            else menu->Off();
+
             SetCapture(hWnd);
 
             RECT wndRect;
             GetWindowRect(hWnd, &wndRect);
 
-            POINT cPos;
-            GetCursorPos(&cPos);
             if (PtInRect(&wndRect, cPos))
             {
                 wndMouseDragOffset.x = ralsei->x - cPos.x;
@@ -232,11 +220,19 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_LBUTTONUP:
         {
-            menu->Off();
-            ReleaseCapture();
-
             POINT cPos;
             GetCursorPos(&cPos);
+
+            if (menu->IsOn())
+            {
+                menu->Off();
+                if (menu->IsInMenuRect(cPos))
+                {
+                    return 0;
+                }
+            }
+            ReleaseCapture();
+
             ralsei->SetVelocity((cPos.x - wndPosOld.x) / delta, (cPos.y - wndPosOld.y) / delta);
             ralsei->isHolding = false;
 
@@ -264,7 +260,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
         case WM_DESTROY:
         {
             delete ralsei; // Um... Kris...
-            RemoveFontMemResourceEx(hMyFont);
             GdiplusShutdown(gdiToken);
             PostQuitMessage(0);
             return 0;
@@ -274,7 +269,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 }
 
 
-void DrawFineRect(Graphics* g, Brush* brush, RectF &rect);
 void Paint(HWND hWnd)
 {
     RECT rc;
@@ -346,21 +340,7 @@ void Paint(HWND hWnd)
     Rect rrect(p.x, p.y, s.x, s.y);
     g.DrawImage(cl, rrect);
 
-
-    if (menu->IsOn())
-    {
-        // Draw dialog box
-        RectF digrect(menu->menuPos.x, menu->menuPos.y, 200, 40 * 6 + 30);
-        DrawFineRect(&g, &brush, digrect);
-        g.DrawRectangle(&pen, digrect);
-
-        // Draw text
-        Font f(hdcMem, hFont);
-        StringFormat strformat;
-        ATL::CString cstr = "Talk\nIdle Mode\nCommand\nDebug\nAbout\nExit";
-        g.DrawString(cstr, wcslen(cstr), &f,
-            PointF(menu->menuPos.x + 15, menu->menuPos.y + 10), &strformat, &textBrush);
-    }
+    menu->Paint(&g, hdcMem);
 
     // Done with off-screen bitmap and DC.
     POINT ptSrc = { 0 };
@@ -380,17 +360,5 @@ void Paint(HWND hWnd)
     DeleteDC(hdcMem);
     ReleaseDC(NULL, hdc);
 }
-
-void DrawFineRect(Graphics* g, Brush* brush, RectF& rect)
-{
-    PointF points[5];
-    points[0] = PointF(rect.X, rect.Y);
-    points[1] = points[0]; // fix rect problem
-    points[2] = points[0] + PointF(rect.Width, 0);
-    points[3] = points[0] + PointF(rect.Width, rect.Height);
-    points[4] = points[0] + PointF(0, rect.Height);
-    g->FillPolygon(brush, points, 5);
-}
-
 
 
