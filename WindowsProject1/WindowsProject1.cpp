@@ -63,6 +63,7 @@ GdiplusStartupInput startInput;
 ULONG_PTR gdiToken;
 
 Ralsei* ralsei;
+RightClickMenu* menu;
 
 constexpr long double delta = 1 / 60.0;
 
@@ -91,7 +92,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     else MessageBox(NULL, L"Resource (generic) not found", L"What the hell?!", MB_OK);
 
 
-
+    // Create windows
     const wchar_t CLASS_NAME[] = L"Hello guys!";
     HCURSOR cursor[]
     {
@@ -109,9 +110,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     wClass.lpfnWndProc = WinProc;
     wClass.lpszClassName = CLASS_NAME;
     wClass.style = NULL;
-
     RegisterClassEx(&wClass);
-
     HWND hWnd = CreateWindowExW
     (
         WS_EX_TOPMOST | WS_EX_LAYERED,
@@ -125,13 +124,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         hInstance,
         NULL
     );
-
     if (hWnd == NULL)
     {
         MessageBox(NULL, L"ERROR CREATING WINDOW!", L"ERROR!", MB_OK);
         return 0;
     }
 
+    menu = new RightClickMenu{ { L"lol", L"lol2" }, hInstance };
     ralsei = new Ralsei();
 
     MSG msg = { };
@@ -208,7 +207,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_LBUTTONDOWN:
         {
-            rightClickMenu = false;
             if (mouseIsDown == -1)
             {
                 mouseIsDown = 0;
@@ -234,12 +232,11 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_LBUTTONUP:
         {
-            rightClickMenu = false;
+            menu->Off();
             ReleaseCapture();
 
             POINT cPos;
             GetCursorPos(&cPos);
-
             ralsei->SetVelocity((cPos.x - wndPosOld.x) / delta, (cPos.y - wndPosOld.y) / delta);
             ralsei->isHolding = false;
 
@@ -249,15 +246,15 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_RBUTTONDOWN:
         {
-            rightClickMenu = false;
+            menu->Off();
             if (!mouseIsDown) ReleaseCapture();
             return 0;
         }
 
         case WM_RBUTTONUP:
         {
-            rightClickMenu = true;
-            GetCursorPos(&rightClickMenuPos);
+            menu->On();
+            menu->SetMenuToMousePos();
             SetCapture(hWnd);
             return 0;
         }
@@ -277,7 +274,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 }
 
 
-
+void DrawFineRect(Graphics* g, Brush* brush, RectF &rect);
 void Paint(HWND hWnd)
 {
     RECT rc;
@@ -317,8 +314,10 @@ void Paint(HWND hWnd)
     g.SetInterpolationMode(InterpolationModeNearestNeighbor);
     g.SetPixelOffsetMode(PixelOffsetModeHalf);
     Gdiplus::Pen pen(Color(255, 255, 255), 5);
-    Gdiplus::Pen pen2(Color(255, 0, 0, 0), 250);
-    Gdiplus::SolidBrush brush(Color(255, 255, 255, 255));
+    Gdiplus::Pen pen2(Color(255, 0, 0, 0), 500);
+    Gdiplus::SolidBrush textBrush(Color(255, 255, 255, 255));
+    Gdiplus::SolidBrush brush(Color(255, 0, 0, 0));
+
     pen.SetAlignment(PenAlignmentInset);
     pen2.SetAlignment(PenAlignmentInset);
 
@@ -326,7 +325,7 @@ void Paint(HWND hWnd)
     {
         // Draw dialog box
         RectF digrect(ralsei->x - 250, ralsei->y - 400, 500, 150);
-        g.DrawRectangle(&pen2, digrect);
+        DrawFineRect(&g, &brush, digrect);
         g.DrawRectangle(&pen, digrect);
 
         // Draw text
@@ -334,9 +333,9 @@ void Paint(HWND hWnd)
         StringFormat strformat;
         ATL::CString cstr = ralsei->GetCurrentSpeech();
         g.DrawString(cstr, wcslen(cstr), &f,
-            PointF(ralsei->x - 250 + 45, ralsei->y - 400 + 10), &strformat, &brush);
+            PointF(ralsei->x - 250 + 45, ralsei->y - 400 + 10), &strformat, &textBrush);
         g.DrawString(L"*", wcslen(L"*"), &f,
-            PointF(ralsei->x - 250 + 15, ralsei->y - 400 + 10), &strformat, &brush);
+            PointF(ralsei->x - 250 + 15, ralsei->y - 400 + 10), &strformat, &textBrush);
     }
 
 
@@ -348,11 +347,11 @@ void Paint(HWND hWnd)
     g.DrawImage(cl, rrect);
 
 
-    if (rightClickMenu)
+    if (menu->IsOn())
     {
         // Draw dialog box
-        RectF digrect(rightClickMenuPos.x, rightClickMenuPos.y, 200, 40 * 6 + 30);
-        g.DrawRectangle(&pen2, digrect);
+        RectF digrect(menu->menuPos.x, menu->menuPos.y, 200, 40 * 6 + 30);
+        DrawFineRect(&g, &brush, digrect);
         g.DrawRectangle(&pen, digrect);
 
         // Draw text
@@ -360,7 +359,7 @@ void Paint(HWND hWnd)
         StringFormat strformat;
         ATL::CString cstr = "Talk\nIdle Mode\nCommand\nDebug\nAbout\nExit";
         g.DrawString(cstr, wcslen(cstr), &f,
-            PointF(rightClickMenuPos.x + 15, rightClickMenuPos.y + 10), &strformat, &brush);
+            PointF(menu->menuPos.x + 15, menu->menuPos.y + 10), &strformat, &textBrush);
     }
 
     // Done with off-screen bitmap and DC.
@@ -382,6 +381,16 @@ void Paint(HWND hWnd)
     ReleaseDC(NULL, hdc);
 }
 
+void DrawFineRect(Graphics* g, Brush* brush, RectF& rect)
+{
+    PointF points[5];
+    points[0] = PointF(rect.X, rect.Y);
+    points[1] = points[0]; // fix rect problem
+    points[2] = points[0] + PointF(rect.Width, 0);
+    points[3] = points[0] + PointF(rect.Width, rect.Height);
+    points[4] = points[0] + PointF(0, rect.Height);
+    g->FillPolygon(brush, points, 5);
+}
 
 
 

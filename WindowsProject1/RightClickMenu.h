@@ -16,14 +16,18 @@
 #include <atlstr.h>
 using namespace std;
 
+int hMenuIndex = 100;
 class RightClickMenu
 {
 private:
 	vector<CString> options;
 	bool on = false;
-	POINT menuPos;
+	HWND menuWnd;
+	HINSTANCE inst;
 public:
-	RightClickMenu(vector<CString> options)
+	POINT menuPos;
+
+	RightClickMenu(vector<CString> options, HINSTANCE hInstance)
 	{
 		this->options = options;
 
@@ -33,10 +37,38 @@ public:
 			LoadCursor(0, IDC_ARROW),
 			LoadCursor(0, IDC_HAND)
 		};
-
+		inst = hInstance;
+		InitMenu();
 	}
 
-	void SetMenuMousePos()
+	~RightClickMenu()
+	{
+		DestroyWindow(menuWnd);
+	}
+
+	void InitMenu()
+	{
+		HWND hWnd = CreateWindowExW
+		(
+			WS_EX_TOPMOST | WS_EX_LAYERED,
+			NULL,
+			(LPCTSTR)NULL,
+			WS_POPUP | WS_CHILD,
+			0, 0, 1000, 1000,
+			NULL,
+			(HMENU)hMenuIndex,
+			inst,
+			NULL
+		);
+		hMenuIndex++;
+	}
+
+	void Update(double dt)
+	{
+		if (IsOn()) ShowWindow(menuWnd, SW_SHOW);
+	}
+
+	void SetMenuToMousePos()
 	{
 		GetCursorPos(&menuPos);
 	}
@@ -51,12 +83,12 @@ public:
 		on = false;
 	}
 
-	operator bool()
+	bool IsOn()
 	{
 		return on;
 	}
 
-	HRESULT processMsg(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
+	BOOL processChildMsg(LPARAM lParam)
 	{
 
 	}
