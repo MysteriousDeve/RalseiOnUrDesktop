@@ -15,6 +15,7 @@
 #include <uxtheme.h>
 #include <atlstr.h>
 #include <functional>
+#include <irrKlang/irrKlang.h>
 
 #include "Utils.h"
 #include "Subwindow.h"
@@ -23,16 +24,48 @@ using namespace std;
 class About : public Subwindow
 {
 private:
-
+	int wWidth = 400, wHeight = 330;
+	ISoundEngine* engine;
+	const char* soundfile = "sound\\castletown_empty.ogg";
+	HFONT hFontSmall;
 public:
 	About() : Subwindow()
 	{
-		drawingRect = { 0, 0, 200, 200 };
+		drawingRect = { (Width - wWidth) / 2, (Height - wHeight) / 2, wWidth, wHeight };
+		engine = createIrrKlangDevice();
+		hFontSmall = CreateFontA(
+			30,
+			0,
+			0,
+			0,
+			FW_NORMAL,
+			FALSE,
+			FALSE,
+			FALSE,
+			DEFAULT_CHARSET,
+			OUT_OUTLINE_PRECIS,
+			CLIP_DEFAULT_PRECIS,
+			CLEARTYPE_QUALITY,
+			DEFAULT_PITCH,
+			"8bitoperator JVE"
+		);
 	}
 
 	void Update(double dt)
 	{
 
+	}
+
+	void On()
+	{
+		on = true;
+		if (!engine->isCurrentlyPlaying(soundfile)) engine->play2D(soundfile, true);
+	}
+
+	void Off()
+	{
+		on = false;
+		engine->stopAllSounds();
 	}
 
 	void Paint(Graphics* g, HDC hdcMem)
@@ -57,12 +90,23 @@ public:
 			// Draw menu
 			Font f(hdcMem, hFont);
 			StringFormat strformat;
+			strformat.SetAlignment(StringAlignmentCenter);
 
-			CString s = "hello";
-			PointF drawPt = PointF(pos.x + 15, pos.y + 10);
+			CString s = "ABOUT";
+			PointF drawPt = PointF(Width / 2, drawingRect.Y + 20);
 			g->DrawString(
 				s, wcslen(s),
 				&f, drawPt,
+				&strformat,
+				&textBrush
+			);
+
+			Font f2(hdcMem, hFontSmall);
+			CString s2 = "RalseiOnUrDesktop\nDeveloped by MysteriousDeve\nUse graphics and sounds\nfrom the game Deltarune\nHave you felt fluffy yet?\n\nClick anywhere to exit...";
+			PointF drawPt2 = PointF(Width / 2, drawingRect.Y + 80);
+			g->DrawString(
+				s2, wcslen(s2),
+				&f2, drawPt2,
 				&strformat,
 				&textBrush
 			);

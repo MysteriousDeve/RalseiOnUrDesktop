@@ -160,8 +160,17 @@
     <Text Include="font\8bitoperator_jve\readme.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ikpFlac.dll" />
+    <None Include="ikpMP3.dll" />
+    <None Include="irrKlang.dll" />
     <None Include="myfont1.bin" />
+    <None Include="sound\castletown_empty.ogg" />
     <None Include="ttf1.bin" />
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="sound\snd_ralsei_yell.wav" />
+    <Media Include="sound\snd_splat.wav" />
+    <Media Include="sound\snd_txtral_ch1.wav" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

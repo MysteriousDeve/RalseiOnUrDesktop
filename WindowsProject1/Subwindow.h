@@ -24,7 +24,7 @@ class Subwindow
 protected:
 	bool on = false;
 public:
-	POINT pos;
+	POINT pos = { 0, 0 };
 	Rect drawingRect = { 0, 0, 200, 200 };
 
 	Subwindow()

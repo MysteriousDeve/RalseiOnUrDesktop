@@ -88,5 +88,20 @@
     <None Include="myfont1.bin">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="sound\castletown_empty.ogg" />
+    <None Include="ikpFlac.dll" />
+    <None Include="ikpMP3.dll" />
+    <None Include="irrKlang.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="sound\snd_ralsei_yell.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="sound\snd_splat.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="sound\snd_txtral_ch1.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
   </ItemGroup>
 </Project>

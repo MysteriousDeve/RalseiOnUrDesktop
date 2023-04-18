@@ -33,11 +33,6 @@
 using namespace std;
 using namespace Gdiplus;
 
-int Width = 500;
-int Height = 500;
-
-int MinWidth = 100;
-int MinHeight = 100;
 
 int mouseIsDown = -1;
 POINT wndMouseDragOffset;
@@ -128,7 +123,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         { 
             []() {  },
             []() { ralsei->SetMode(ModeIdle); },
-            []() { about->On(); },
+            [hWnd]() { about->On(); SetCapture(hWnd); },
             []() { exit(0); }
         },
     };
@@ -246,11 +241,19 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
                     if (menu->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam)) return 0;
                 }
             }
+            else
+            {
+                if (about->IsOn())
+                {
+                    about->Off();
+                }
+                else
+                {
+                    ralsei->SetVelocity((cPos.x - wndPosOld.x) / delta, (cPos.y - wndPosOld.y) / delta);
+                    ralsei->isHolding = false;
+                }
+            }
             ReleaseCapture();
-
-            ralsei->SetVelocity((cPos.x - wndPosOld.x) / delta, (cPos.y - wndPosOld.y) / delta);
-            ralsei->isHolding = false;
-
             mouseIsDown = false;
             return 0;
         }
@@ -264,6 +267,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_RBUTTONUP:
         {
+            if (about->IsOn()) about->Off();
             menu->On();
             menu->SetMenuToMousePos();
             SetCapture(hWnd);

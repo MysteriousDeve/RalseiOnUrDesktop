@@ -16,6 +16,9 @@
 using namespace Gdiplus;
 using namespace std;
 
+int Width = 500;
+int Height = 500;
+
 HFONT hFont;
 
 inline void DrawFineRect(Graphics* g, Brush* brush, Rect rect)
