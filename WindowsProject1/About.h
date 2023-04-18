@@ -28,6 +28,7 @@ private:
 	ISoundEngine* engine;
 	const char* soundfile = "sound\\castletown_empty.ogg";
 	HFONT hFontSmall;
+	TextPrinter* prt;
 public:
 	About() : Subwindow()
 	{
@@ -49,23 +50,29 @@ public:
 			DEFAULT_PITCH,
 			"8bitoperator JVE"
 		);
+		prt = new TextPrinter(
+			"RalseiOnUrDesktop\nDeveloped by MysteriousDeve\nUse graphics and sounds\nfrom the game Deltarune\n(Have you felt fluffy yet?)\n\nClick anywhere to exit...", 
+			false, 0.32, "");
 	}
 
 	void Update(double dt)
 	{
-
+		prt->Update(dt);
 	}
 
 	void On()
 	{
 		on = true;
 		if (!engine->isCurrentlyPlaying(soundfile)) engine->play2D(soundfile, true);
+		prt->Reset();
+		prt->isPlaying = true;
 	}
 
 	void Off()
 	{
 		on = false;
 		engine->stopAllSounds();
+		prt->isPlaying = false;
 	}
 
 	void Paint(Graphics* g, HDC hdcMem)
@@ -102,7 +109,7 @@ public:
 			);
 
 			Font f2(hdcMem, hFontSmall);
-			CString s2 = "RalseiOnUrDesktop\nDeveloped by MysteriousDeve\nUse graphics and sounds\nfrom the game Deltarune\nHave you felt fluffy yet?\n\nClick anywhere to exit...";
+			CString s2 = prt->GetCurrent();
 			PointF drawPt2 = PointF(Width / 2, drawingRect.Y + 80);
 			g->DrawString(
 				s2, wcslen(s2),

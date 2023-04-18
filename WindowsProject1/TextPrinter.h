@@ -2,27 +2,32 @@
 
 #include <atlstr.h>
 #include <irrKlang/irrKlang.h>
+#include <string>
 using namespace irrklang;
+using namespace std;
 
 class TextPrinter
 {
 private:
-	const double rate = 0.05;
+	double rate = 0.05;
 	double internalTime = 0;
 	double autoSkipTime = 2;
 	CString str;
 	CString strCopy;
 	CString current;
 	ISoundEngine* engine;
+	string playSound;
 	bool isTimeout = false;
 public:
 	bool isPlaying = false;
 
-	TextPrinter(CString str, bool isPlaying = true, double autoSkipTime = INFINITY)
+	TextPrinter(CString str, bool isPlaying = true, double rate = 0.05, std::string playSound = "", double autoSkipTime = INFINITY)
 	{
 		this->str = str;
 		this->isPlaying = isPlaying;
 		this->autoSkipTime = autoSkipTime;
+		this->playSound = playSound;
+		this->rate = rate;
 		Reset();
 		engine = createIrrKlangDevice();
 	}
@@ -42,9 +47,9 @@ public:
 					current += s;
 					strCopy.Delete(0, 1);
 
-					if (s != L" " || s != L"\n")
+					if (s != CString(" ") && s != CString("\n"))
 					{
-						engine->play2D("sound\\snd_txtral_ch1.wav");
+						if (playSound != "") engine->play2D(playSound.c_str());
 						break;
 					}
 				}

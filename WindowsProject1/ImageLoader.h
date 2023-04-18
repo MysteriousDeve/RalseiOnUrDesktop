@@ -143,7 +143,7 @@ private:
 	double val_veldiffy = 0;
 	ISoundEngine* engine;
 
-	TextPrinter textPrinter = { L"Hello! I'm Ralsei.", false, 2 };
+	TextPrinter textPrinter = { L"Hello! I'm Ralsei.", false, 0.05, "sound\\snd_txtral_ch1.wav", 2 };
 	bool isSpeaking;
 public:	
 	double velx = 0, vely = 0, vxo = 0, vyo = 0;
@@ -163,7 +163,6 @@ public:
 
 		vxo = velx; vyo = vely;
 		engine = createIrrKlangDevice();
-
 	}
 
 	void SetMode(RalseiMode mode)
