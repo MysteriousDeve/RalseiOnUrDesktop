@@ -13,6 +13,7 @@
 #include <uxtheme.h>
 #include <atlstr.h>
 #include <shellscalingapi.h>
+#include <functional>
 #pragma comment (lib,"shcore.lib")
 
 #include "TextPrinter.h"
@@ -22,6 +23,7 @@
 #include "ImageLoader.h"
 #include "RightClickMenu.h"
 #include "Utils.h"
+#include "About.h"
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment (lib,"msimg32.lib")
 #pragma comment (lib,"winmm.lib")
@@ -63,6 +65,7 @@ ULONG_PTR gdiToken;
 
 Ralsei* ralsei;
 RightClickMenu* menu;
+About* about;
 
 constexpr long double delta = 1 / 60.0;
 
@@ -117,9 +120,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     }
     ShowWindow(hWnd, SW_SHOW);
 
-
-    menu = new RightClickMenu{ { L"Talk", L"Idle Mode", L"About", L"Exit" } };
+    // UI definition
     ralsei = new Ralsei();
+    menu = new RightClickMenu
+    { 
+        { L"Talk", L"Idle Mode", L"About", L"Exit" },
+        { 
+            []() {  },
+            []() { ralsei->SetMode(ModeIdle); },
+            []() { about->On(); },
+            []() { exit(0); }
+        },
+    };
+    about = new About();
+
 
     MSG msg = { };
     if (!SetForegroundWindow(hWnd)) MessageBox(NULL, L"Can't bring to front", L"", MB_OK);
@@ -156,6 +170,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
                 }
                 ralsei->Update(delta);
                 menu->Update(delta);
+                about->Update(delta);
 
                 Paint(hWnd);
             }
@@ -199,7 +214,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
             POINT cPos;
             GetCursorPos(&cPos);
 
-            if (menu->IsInMenuRect(cPos)) return 0;
+            if (menu->IsInSubwindowRect(cPos)) return 0;
             else menu->Off();
 
             SetCapture(hWnd);
@@ -226,9 +241,9 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
             if (menu->IsOn())
             {
                 menu->Off();
-                if (menu->IsInMenuRect(cPos))
+                if (menu->IsInSubwindowRect(cPos))
                 {
-                    return 0;
+                    if (menu->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam)) return 0;
                 }
             }
             ReleaseCapture();
@@ -341,6 +356,7 @@ void Paint(HWND hWnd)
     g.DrawImage(cl, rrect);
 
     menu->Paint(&g, hdcMem);
+    about->Paint(&g, hdcMem);
 
     // Done with off-screen bitmap and DC.
     POINT ptSrc = { 0 };

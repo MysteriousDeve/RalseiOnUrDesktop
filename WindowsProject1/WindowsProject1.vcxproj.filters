@@ -39,6 +39,12 @@
     <ClInclude Include="Utils.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Subwindow.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="About.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WindowsProject1.cpp">

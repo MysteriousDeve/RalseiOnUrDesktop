@@ -29,15 +29,7 @@ struct Vector2
 	}
 };
 
-enum RalseiState
-{
-	Front,
-	Left,
-	Back,
-	Right,
-	Shock,
-	Fell
-};
+
 
 
 class AnimationClip
@@ -109,7 +101,20 @@ public:
 
 
 
-
+enum RalseiState
+{
+	Front,
+	Left,
+	Back,
+	Right,
+	Shock,
+	Fell
+};
+enum RalseiMode
+{
+	ModeNone,
+	ModeIdle
+};
 class Ralsei
 {
 private:
@@ -128,11 +133,12 @@ private:
 	double pivotx = 0.5, pivoty = 1;
 	double ppx = 0.5, ppy = 1;
 	double damping = 6;
-
 	double lowerBound = 1000;
 	double fallShockVelThreshold = 800;
-	double shockTime = 3;
 	double leftLim = -300, rightLim = 2320;
+
+	double shockTime = 3;
+	double idleTime = 8;
 
 	double val_veldiffy = 0;
 	ISoundEngine* engine;
@@ -158,6 +164,15 @@ public:
 		vxo = velx; vyo = vely;
 		engine = createIrrKlangDevice();
 
+	}
+
+	void SetMode(RalseiMode mode)
+	{
+		switch (mode)
+		{
+		case ModeIdle: internalTime = idleTime; break;
+		default: break;
+		}
 	}
 
 	void UpdatePhysics(double dt)
@@ -190,6 +205,7 @@ public:
 		}
 		val_veldiffy =  vely - vyo;
 	}
+
 	void IdleMode(double dt)
 	{
 		state = (RalseiState)((int)(internalTime / 2.0) % 4);
@@ -200,6 +216,7 @@ public:
 		default: break;
 		}
 	}
+
 	void Update(double dt)
 	{
 		internalTime += dt;
@@ -242,7 +259,7 @@ public:
 						engine->play2D("sound\\snd_splat.wav");
 					}
 
-					if (internalTime >= 8) IdleMode(dt);
+					if (internalTime >= idleTime) IdleMode(dt);
 				}
 			}
 

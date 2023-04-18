@@ -14,60 +14,69 @@
 #include <gdiplusbrush.h>
 #include <uxtheme.h>
 #include <atlstr.h>
+#include <functional>
 
 #include "Utils.h"
+#include "Subwindow.h"
 using namespace std;
 
-const wchar_t CLASS_NAME2[] = L"Hello guys!";
-class RightClickMenu
+class RightClickMenu : public Subwindow
 {
 private:
 	vector<CString> options;
-	bool on = false;
-	HWND menuWnd;
-	HINSTANCE inst;
-	Image* selectingImg;
+	vector<std::function<void()>> eventCalls;
+	int selectionIndex = -1;
 public:
-	POINT menuPos;
-	Rect drawingRect = { 0, 0, 200, 40 * 6 + 30 };
-
-	RightClickMenu(vector<CString> options)
+	RightClickMenu(vector<CString> options, vector<std::function<void()>> eventCalls) : Subwindow()
 	{
 		this->options = options;
-
-		HCURSOR cursor[]
-		{
-			LoadCursor(0, IDC_ARROW),
-			LoadCursor(0, IDC_HAND)
-		};
-		selectingImg = Gdiplus::Image::FromFile(L"deltarune-sprites\\Sprites\\spr_heart(0).png");
+		this->eventCalls = eventCalls;
 	}
 
 	void Update(double dt)
 	{
-		
+		if (IsOn())
+		{
+			selectionIndex = GetCurrentHoverChoice();
+		}
+	}
+
+	bool OnConfirmChoiceEvent(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
+	{
+		int i = GetCurrentHoverChoice();
+		if (i < 0 || i >= eventCalls.size()) return false;
+		eventCalls[i]();
+		return true;
+	}
+
+	int GetCurrentHoverChoice()
+	{
+		POINT pt;
+		GetCursorPos(&pt);
+
+		for (int i = 0; i < options.size(); i++)
+		{
+			Rect r = { pos.x + 5, pos.y + 10 + 40 * i, drawingRect.Width - 10, 35 };
+			BOOL b = r.Contains(pt.x, pt.y);
+			if (b)
+			{
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	void SetMenuToMousePos()
 	{
-		GetCursorPos(&menuPos);
-		drawingRect.X = menuPos.x;
-		drawingRect.Y = menuPos.y;
+		GetCursorPos(&pos);
+		drawingRect.X = pos.x;
+		drawingRect.Y = pos.y;
 	}
 
 	void On()
 	{
 		on = true;
-	}
-
-	void Off()
-	{
-		on = false;
-	}
-
-	bool IsOn()
-	{
-		return on;
+		selectionIndex = -1;
 	}
 
     void ShowErrorMsgBox()
@@ -85,6 +94,7 @@ public:
         Gdiplus::Pen pen(Color(255, 255, 255), 5);
         Gdiplus::Pen pen2(Color(255, 0, 0, 0), 500);
         Gdiplus::SolidBrush textBrush(Color(255, 255, 255, 255));
+		Gdiplus::SolidBrush textBrushHightlighted(Color(255, 255, 255, 0));
         Gdiplus::SolidBrush brush(Color(255, 0, 0, 0));
 
         pen.SetAlignment(PenAlignmentInset);
@@ -93,7 +103,7 @@ public:
         if (IsOn())
         {
             // Draw dialog box
-			drawingRect.Width = 240;
+			drawingRect.Width = 200;
 			drawingRect.Height = 40 * options.size() + 25;
             DrawFineRect(g, &brush, drawingRect);
             g->DrawRectangle(&pen, drawingRect);
@@ -104,18 +114,15 @@ public:
 			for (int i = 0; i < options.size(); i++)
 			{
 				CString s = options[i];
-				PointF drawPt = PointF(menuPos.x + 15, menuPos.y + 10 + 40 * i);
-				RectF heartRect = { drawPt + PointF{ 5, 5 }, { 30, 30 } };
-				g->DrawImage(selectingImg, heartRect);
-				g->DrawString(s, wcslen(s), &f, drawPt + PointF{ 40, 0 }, & strformat, & textBrush);
+				PointF drawPt = PointF(pos.x + 15, pos.y + 10 + 40 * i);
+				g->DrawString(
+					s, wcslen(s), 
+					&f, drawPt,
+					&strformat,
+					&(selectionIndex == i ? textBrushHightlighted : textBrush));
 			}
         }
     }
-
-	bool IsInMenuRect(POINT pt)
-	{
-		return drawingRect.Contains(Point(pt.x, pt.y));
-	}
 };
 
 
