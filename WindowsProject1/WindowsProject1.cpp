@@ -334,6 +334,9 @@ void Paint(HWND hWnd)
     pen.SetAlignment(PenAlignmentInset);
     pen2.SetAlignment(PenAlignmentInset);
 
+
+    Font f(hdcMem, hFont);
+    StringFormat strformat;
     if (ralsei->IsSpeaking())
     {
         // Draw dialog box
@@ -342,13 +345,22 @@ void Paint(HWND hWnd)
         g.DrawRectangle(&pen, digrect);
 
         // Draw text
-        Font f(hdcMem, hFont);
-        StringFormat strformat;
         ATL::CString cstr = ralsei->GetCurrentSpeech();
         g.DrawString(cstr, wcslen(cstr), &f,
             PointF(ralsei->x - 250 + 45, ralsei->y - 400 + 10), &strformat, &textBrush);
         g.DrawString(L"*", wcslen(L"*"), &f,
             PointF(ralsei->x - 250 + 15, ralsei->y - 400 + 10), &strformat, &textBrush);
+    }
+    else if (true)
+    {
+        RectF digrect(ralsei->x - 250, ralsei->y - 520, 500, 270);
+        DrawFineRect(&g, &brush, digrect);
+        g.DrawRectangle(&pen, digrect);
+
+        // Draw text
+        ATL::CString cstr = "* About yourself\n* Dark World\n* Prophecy\n* Soul\n* I got homework\n* Nothing";
+        g.DrawString(cstr, wcslen(cstr), &f,
+            PointF(ralsei->x - 250 + 15, ralsei->y - 520 + 10), &strformat, &textBrush);
     }
 
 
