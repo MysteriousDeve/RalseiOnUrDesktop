@@ -3,6 +3,7 @@
 #include <atlstr.h>
 #include <irrKlang/irrKlang.h>
 #include <string>
+#include <vector>
 using namespace irrklang;
 using namespace std;
 
@@ -11,7 +12,9 @@ class TextPrinter
 private:
 	double rate = 0.05;
 	double internalTime = 0;
+	int strListIndex = 0;
 	double autoSkipTime = 2;
+	vector<CString> strList;
 	CString str;
 	CString strCopy;
 	CString current;
@@ -56,12 +59,16 @@ public:
 				internalTime -= rate;
 			}
 		}
-		isTimeout = internalTime >= autoSkipTime;
-	}
-
-	bool IsDone()
-	{
-		return strCopy.GetLength() == 0;
+		if (internalTime >= autoSkipTime)
+		{
+			isTimeout = strListIndex >= strList.size() - 1;
+			if (!isTimeout)
+			{
+				strListIndex++;
+				InitNextDialogue();
+			}
+		}
+		else isTimeout = false;
 	}
 
 	void SetNew(CString str)
@@ -70,15 +77,30 @@ public:
 		Reset();
 	}
 
-	void Reset()
+	void InitNextDialogue()
 	{
-		strCopy = str;
+		strCopy = strList[strListIndex];
 		current.Empty();
 		internalTime = 0;
 	}
 
+	void Reset()
+	{
+		strList.clear();
+		int nTokenPos = 0;
+		CString strToken = str.Tokenize(_T("|"), nTokenPos);
+		while (!strToken.IsEmpty())
+		{
+			strList.push_back(strToken);
+			strToken = str.Tokenize(_T("|"), nTokenPos);
+		}
+		strListIndex = 0;
+		InitNextDialogue();
+	}
+
 	CString GetCurrent()
 	{
+		// CString(L"[") + CString(to_string(strListIndex).c_str()) + CString(",") + CString(to_string(strList.size()).c_str()) + CString("]") + 
 		return current;
 	}
 
