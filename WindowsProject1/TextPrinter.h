@@ -21,16 +21,18 @@ private:
 	ISoundEngine* engine;
 	string playSound;
 	bool isTimeout = false;
+	bool delayOnSpecialChars;
 public:
 	bool isPlaying = false;
 
-	TextPrinter(CString str, bool isPlaying = true, double rate = 0.05, std::string playSound = "", double autoSkipTime = INFINITY)
+	TextPrinter(CString str, bool isPlaying = true, double rate = 0.05, std::string playSound = "", double autoSkipTime = INFINITY, bool delayOnSpecialChars = true)
 	{
 		this->str = str;
 		this->isPlaying = isPlaying;
 		this->autoSkipTime = autoSkipTime;
 		this->playSound = playSound;
 		this->rate = rate;
+		this->delayOnSpecialChars = delayOnSpecialChars;
 		Reset();
 		engine = createIrrKlangDevice();
 	}
@@ -52,6 +54,10 @@ public:
 
 					if (s != CString(" ") && s != CString("\n"))
 					{
+						if (delayOnSpecialChars && CString("!?.,;").Find(s) != -1)
+						{
+							internalTime -= rate * 5;
+						}
 						if (playSound != "") engine->play2D(playSound.c_str());
 						break;
 					}
@@ -88,11 +94,11 @@ public:
 	{
 		strList.clear();
 		int nTokenPos = 0;
-		CString strToken = str.Tokenize(_T("|"), nTokenPos);
+		CString strToken = str.Tokenize(_T("|||"), nTokenPos);
 		while (!strToken.IsEmpty())
 		{
 			strList.push_back(strToken);
-			strToken = str.Tokenize(_T("|"), nTokenPos);
+			strToken = str.Tokenize(_T("|||"), nTokenPos);
 		}
 		strListIndex = 0;
 		InitNextDialogue();

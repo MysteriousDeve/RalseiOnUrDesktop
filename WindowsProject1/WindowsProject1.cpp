@@ -60,6 +60,7 @@ ULONG_PTR gdiToken;
 
 Ralsei* ralsei;
 RightClickMenu* menu;
+RightClickMenu* topicChoser;
 About* about;
 
 constexpr long double delta = 1 / 60.0;
@@ -121,12 +122,28 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     { 
         { L"Talk", L"Idle Mode", L"About", L"Exit" },
         { 
-            []() {  },
+            []() { topicChoser->On(); },
             []() { ralsei->SetMode(ModeIdle); },
             [hWnd]() { about->On(); SetCapture(hWnd); },
             []() { exit(0); }
         },
     };
+    menu->SetPostEvt([]() { menu->Off(); ReleaseCapture(); });
+
+    topicChoser = new RightClickMenu
+    {
+        { " * About yourself", " * Dark World", " * Prophecy", " * Soul", " * I got homework", " * Nothing"},
+        {
+            []() { convoIndex = 0; },
+            []() { convoIndex = 1; },
+            []() { convoIndex = 2; },
+            []() { convoIndex = 3; },
+            []() { convoIndex = 4; },
+            []() { convoIndex = -1; },
+        },
+        500
+    };
+    topicChoser->SetPostEvt([]() { if (convoIndex != -1) ralsei->SetConvo(convo[convoIndex]); topicChoser->Off(); ReleaseCapture(); });
     about = new About();
 
 
@@ -165,6 +182,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
                 }
                 ralsei->Update(delta);
                 menu->Update(delta);
+                topicChoser->SetMenuPos(ralsei->x - topicChoser->width / 2, ralsei->y - 515);
+                topicChoser->Update(delta);
                 about->Update(delta);
 
                 Paint(hWnd);
@@ -180,7 +199,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
     {
         case WM_INITDIALOG:
         {
-            return 0;
+            break;
         }
 
         case WM_CREATE:
@@ -201,7 +220,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
                 DEFAULT_PITCH,
                 "8bitoperator JVE"
             );
-            return 0;
+            break;
         }
 
         case WM_LBUTTONDOWN:
@@ -209,7 +228,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
             POINT cPos;
             GetCursorPos(&cPos);
 
-            if (menu->IsInSubwindowRect(cPos)) return 0;
+            if (menu->IsOn() && menu->IsInSubwindowRect(cPos)) return 0;
             else menu->Off();
 
             SetCapture(hWnd);
@@ -217,15 +236,18 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
             RECT wndRect;
             GetWindowRect(hWnd, &wndRect);
 
-            if (PtInRect(&wndRect, cPos))
+            if (!ralsei->IsSpeaking())
             {
-                wndMouseDragOffset.x = ralsei->x - cPos.x;
-                wndMouseDragOffset.y = ralsei->y - cPos.y;
-                mouseIsDown = 1;
-                wndPosOld = cPos;
-                ralsei->isHolding = true;
+                if (PtInRect(&wndRect, cPos))
+                {
+                    wndMouseDragOffset.x = ralsei->x - cPos.x;
+                    wndMouseDragOffset.y = ralsei->y - cPos.y;
+                    mouseIsDown = 1;
+                    wndPosOld = cPos;
+                    ralsei->isHolding = true;
+                }
             }
-            return 0;
+            break;
         }
 
         case WM_LBUTTONUP:
@@ -235,10 +257,9 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
             if (menu->IsOn())
             {
-                menu->Off();
                 if (menu->IsInSubwindowRect(cPos))
                 {
-                    if (menu->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam)) return 0;
+                    if (menu->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam));
                 }
             }
             else
@@ -249,20 +270,28 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
                 }
                 else
                 {
-                    ralsei->SetVelocity((cPos.x - wndPosOld.x) / delta, (cPos.y - wndPosOld.y) / delta);
-                    ralsei->isHolding = false;
+                    if (ralsei->isHolding)
+                    {
+                        ralsei->SetVelocity((cPos.x - wndPosOld.x) / delta, (cPos.y - wndPosOld.y) / delta);
+                        ralsei->isHolding = false;
+                    }
+
+                    if (topicChoser->IsOn() && topicChoser->IsInSubwindowRect(cPos))
+                    {
+                        if (topicChoser->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam));
+                    }
                 }
             }
             ReleaseCapture();
             mouseIsDown = false;
-            return 0;
+            break;
         }
 
         case WM_RBUTTONDOWN:
         {
             menu->Off();
             if (!mouseIsDown) ReleaseCapture();
-            return 0;
+            break;
         }
 
         case WM_RBUTTONUP:
@@ -271,7 +300,29 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
             menu->On();
             menu->SetMenuToMousePos();
             SetCapture(hWnd);
-            return 0;
+            break;
+        }
+
+        case WM_KEYDOWN:
+        {
+            if (about->IsOn()) about->Off();
+            if (menu->IsOn())
+            {
+                menu->Off();
+                ReleaseCapture();
+            }
+            break;
+        }
+
+        case WM_KEYUP:
+        {
+            if (wParam == VK_APPS)
+            {
+                menu->On();
+                menu->SetMenuToMousePos();
+                SetCapture(hWnd);
+            }
+            break;
         }
 
         case WM_ERASEBKGND: return (LRESULT)1; // we handle background erase
@@ -351,18 +402,6 @@ void Paint(HWND hWnd)
         g.DrawString(L"*", wcslen(L"*"), &f,
             PointF(ralsei->x - 250 + 15, ralsei->y - 400 + 10), &strformat, &textBrush);
     }
-    else if (true)
-    {
-        RectF digrect(ralsei->x - 250, ralsei->y - 520, 500, 270);
-        DrawFineRect(&g, &brush, digrect);
-        g.DrawRectangle(&pen, digrect);
-
-        // Draw text
-        ATL::CString cstr = "* About yourself\n* Dark World\n* Prophecy\n* Soul\n* I got homework\n* Nothing";
-        g.DrawString(cstr, wcslen(cstr), &f,
-            PointF(ralsei->x - 250 + 15, ralsei->y - 520 + 10), &strformat, &textBrush);
-    }
-
 
     // ...draw me?
     auto cl = ralsei->GetSprite();
@@ -371,8 +410,9 @@ void Paint(HWND hWnd)
     Rect rrect(p.x, p.y, s.x, s.y);
     g.DrawImage(cl, rrect);
 
-    menu->Paint(&g, hdcMem);
+    topicChoser->Paint(&g, hdcMem);
     about->Paint(&g, hdcMem);
+    menu->Paint(&g, hdcMem);
 
     // Done with off-screen bitmap and DC.
     POINT ptSrc = { 0 };

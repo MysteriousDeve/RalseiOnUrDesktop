@@ -42,3 +42,13 @@ inline void DrawFineRect(Graphics* g, Brush* brush, RectF rect)
     points[4] = points[0] + PointF(0, rect.Height);
     g->FillPolygon(brush, points, 5);
 }
+
+CString convo[]
+{
+    "Then do it!\nSchool is important!",
+    "Then do it!\nSchool is important!",
+    "Then do it!\nSchool is important!",
+    "Then do it!\nSchool is important!",
+    "Then do it!\nSchool is important!|||I'm not going to talk\nto you unless you\nfinished everything!",
+};
+int convoIndex = -1;

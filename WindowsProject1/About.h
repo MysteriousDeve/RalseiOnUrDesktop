@@ -52,7 +52,7 @@ public:
 		);
 		prt = new TextPrinter(
 			"RalseiOnUrDesktop\nDeveloped by MysteriousDeve\nUse graphics and sounds\nfrom the game Deltarune\n(Have you felt fluffy yet?)\n\nClick anywhere to exit...", 
-			false, 0.32, "");
+			false, 0.32, "", 9999999, false);
 	}
 
 	void Update(double dt)

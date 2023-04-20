@@ -25,12 +25,20 @@ class RightClickMenu : public Subwindow
 private:
 	vector<CString> options;
 	vector<std::function<void()>> eventCalls;
+	std::function<void()> postEvt = []() {};
 	int selectionIndex = -1;
 public:
-	RightClickMenu(vector<CString> options, vector<std::function<void()>> eventCalls) : Subwindow()
+	int width;
+	RightClickMenu(vector<CString> options, vector<std::function<void()>> eventCalls, int width = 200) : Subwindow()
 	{
 		this->options = options;
 		this->eventCalls = eventCalls;
+		this->width = width;
+	}
+
+	void SetPostEvt(std::function<void()> postEvt)
+	{
+		this->postEvt = postEvt;
 	}
 
 	void Update(double dt)
@@ -46,6 +54,7 @@ public:
 		int i = GetCurrentHoverChoice();
 		if (i < 0 || i >= eventCalls.size()) return false;
 		eventCalls[i]();
+		postEvt();
 		return true;
 	}
 
@@ -71,6 +80,14 @@ public:
 		GetCursorPos(&pos);
 		drawingRect.X = pos.x;
 		drawingRect.Y = pos.y;
+	}
+
+	void SetMenuPos(int x, int y)
+	{
+		pos.x = x;
+		pos.y = y;
+		drawingRect.X = x;
+		drawingRect.Y = y;
 	}
 
 	void On()
@@ -103,7 +120,7 @@ public:
         if (IsOn())
         {
             // Draw dialog box
-			drawingRect.Width = 200;
+			drawingRect.Width = width;
 			drawingRect.Height = 40 * options.size() + 25;
             DrawFineRect(g, &brush, drawingRect);
             g->DrawRectangle(&pen, drawingRect);

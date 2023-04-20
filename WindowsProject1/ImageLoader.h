@@ -143,7 +143,7 @@ private:
 	double val_veldiffy = 0;
 	ISoundEngine* engine;
 
-	TextPrinter textPrinter = { L"Hello! I'm Ralsei.|Shall we be friend along\nthe way?", false, 0.05, "sound\\snd_txtral_ch1.wav", 1 };
+	TextPrinter textPrinter = { L"Hello! I'm Ralsei.|||Shall we be friend along\nthe way?", false, 0.05, "sound\\snd_txtral_ch1.wav", 1 };
 	bool isSpeaking;
 public:	
 	double velx = 0, vely = 0, vxo = 0, vyo = 0;
@@ -151,6 +151,7 @@ public:
 	double scale = 5;
 	bool isHolding = false;
 	bool isFalling = false;
+	bool hasSaidHi = false;
 
 	Ralsei()
 	{
@@ -172,6 +173,13 @@ public:
 		case ModeIdle: internalTime = idleTime; break;
 		default: break;
 		}
+	}
+
+	void SetConvo(CString str)
+	{
+		textPrinter.SetNew(str);
+		textPrinter.isPlaying = true;
+		isSpeaking = true;
 	}
 
 	void UpdatePhysics(double dt)
@@ -273,9 +281,14 @@ public:
 			if (isTouchingGround() && !isSpeaking && internalTime >= 0)
 			{
 				isSpeaking = true;
-				textPrinter.Reset();
-				textPrinter.isPlaying = true;
+				if (!hasSaidHi)
+				{
+					textPrinter.Reset();
+					textPrinter.isPlaying = true;
+					hasSaidHi = true;
+				}
 			}
+			if (isSpeaking) internalTime = 0;
 		}
 		textPrinter.Update(dt);
 	}
