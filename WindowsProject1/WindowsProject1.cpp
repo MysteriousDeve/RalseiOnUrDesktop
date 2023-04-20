@@ -245,7 +245,10 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
                     mouseIsDown = 1;
                     wndPosOld = cPos;
                     ralsei->isHolding = true;
+
+                    if (!topicChoser->IsInSubwindowRect(cPos) && topicChoser->IsOn()) topicChoser->Off();
                 }
+                
             }
             break;
         }
@@ -276,9 +279,12 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
                         ralsei->isHolding = false;
                     }
 
-                    if (topicChoser->IsOn() && topicChoser->IsInSubwindowRect(cPos))
+                    if (topicChoser->IsOn())
                     {
-                        if (topicChoser->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam));
+                        if (topicChoser->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam))
+                        {
+                            topicChoser->IsInSubwindowRect(cPos);
+                        }
                     }
                 }
             }

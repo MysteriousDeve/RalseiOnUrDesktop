@@ -45,10 +45,10 @@ inline void DrawFineRect(Graphics* g, Brush* brush, RectF rect)
 
 CString convo[]
 {
-    "Then do it!\nSchool is important!",
-    "Then do it!\nSchool is important!",
-    "Then do it!\nSchool is important!",
-    "Then do it!\nSchool is important!",
-    "Then do it!\nSchool is important!|||I'm not going to talk\nto you unless you\nfinished everything!",
+    "About me?|||I'm Ralsei, the prince\nof the Dark!|||(Erm, is just that all\nabout me?)",
+    "About the dark world...|||It is a world which\nis powered by a Dark\nFountain.|||And the Dark Fountain is a\ngeyser that give the Dark\nWorld its own form.|||...\n(Did I miss anything?)",
+    "Once upon a time, a LEGEND\nwas whispered among\nshadows.||||It was a LEGEND of HOPE.\nIt was a LEGEND of DREAMS.|||It was a LEGEND of LIGHT.\nIt was a LEGEND of DARK.|||This is the legend of...|||..............\n(Oh no I forgot it)",
+    "The SOUL?|||Well, it is the highest\nculmination of your being.|||In battle, the SOUL can\nbe hit by enemy attacks,\nso watch out for them.|||The SOUL also has the\npower to seal the Fountain.",
+    "Then do it!\nSchool is important!|||I'm not going to talk\nto you unless you\nfinished everything!|||(Wait, did you ask for\nmy help or something?)",
 };
 int convoIndex = -1;
