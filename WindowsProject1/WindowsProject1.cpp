@@ -163,7 +163,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         }
         else
         {
-            long double milisec = (hrc::now() - timer).count() / (long double)1000000.0;
+            long double milisec = (hrc::now() - timer).count() / (long double)1000000;
             if (milisec >= delta * 1000)
             {
                 timer = hrc::now();
@@ -384,12 +384,10 @@ void Paint(HWND hWnd)
     g.SetInterpolationMode(InterpolationModeNearestNeighbor);
     g.SetPixelOffsetMode(PixelOffsetModeHalf);
     Gdiplus::Pen pen(Color(255, 255, 255), 5);
-    Gdiplus::Pen pen2(Color(255, 0, 0, 0), 500);
     Gdiplus::SolidBrush textBrush(Color(255, 255, 255, 255));
     Gdiplus::SolidBrush brush(Color(255, 0, 0, 0));
 
     pen.SetAlignment(PenAlignmentInset);
-    pen2.SetAlignment(PenAlignmentInset);
 
 
     Font f(hdcMem, hFont);
