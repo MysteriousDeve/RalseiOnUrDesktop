@@ -66,6 +66,7 @@ About* about;
 constexpr long double delta = 1 / 60.0;
 
 void Paint(HWND hWnd);
+void MainUpdate(HWND hWnd);
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
     SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
@@ -146,50 +147,44 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     topicChoser->SetPostEvt([]() { if (convoIndex != -1) ralsei->SetConvo(convo[convoIndex]); topicChoser->Off(); ReleaseCapture(); });
     about = new About();
 
-
-    MSG msg = { };
     if (!SetForegroundWindow(hWnd)) MessageBox(NULL, L"Can't bring to front", L"", MB_OK);
 
-    typedef std::chrono::high_resolution_clock hrc;
-    static auto timer = hrc::now();
-    while (TRUE)
+    MSG msg = { };
+
+    if (isDeviceCharging())
     {
-        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        typedef std::chrono::high_resolution_clock hrc;
+        static auto timer = hrc::now();
+        while (TRUE)
         {
-            if (msg.message == WM_QUIT)
-                break;
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-        else
-        {
-            long double milisec = (hrc::now() - timer).count() / (long double)1000000;
-            if (milisec >= delta * 1000)
+            if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
             {
-                timer = hrc::now();
-
-                // Handle window dragging
-                if (mouseIsDown == 1)
+                if (msg.message == WM_QUIT)
+                    break;
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+            else
+            {
+                long double milisec = (hrc::now() - timer).count() / (long double)1000000;
+                if (milisec >= delta * 1000)
                 {
-                    POINT cPos;
-                    GetCursorPos(&cPos);
-
-                    ralsei->x = cPos.x + wndMouseDragOffset.x;
-                    ralsei->y = cPos.y + wndMouseDragOffset.y;
-                    ralsei->SetVelocity(0, 0);
-
-                    wndPosOld = cPos;
+                    timer = hrc::now();
+                    MainUpdate(hWnd);
                 }
-                ralsei->Update(delta);
-                menu->Update(delta);
-                topicChoser->SetMenuPos(ralsei->x - topicChoser->width / 2, ralsei->y - 515);
-                topicChoser->Update(delta);
-                about->Update(delta);
-
-                Paint(hWnd);
             }
         }
     }
+    else
+    {
+        SetTimer(hWnd, 0, delta * 1000, (TIMERPROC)WinProc);
+        while (GetMessage(&msg, NULL, 0, 0))
+        {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+    }
+
     return 0;
 }
 
@@ -220,6 +215,12 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
                 DEFAULT_PITCH,
                 "8bitoperator JVE"
             );
+            break;
+        }
+
+        case WM_TIMER:
+        {
+            MainUpdate(hWnd);
             break;
         }
 
@@ -344,6 +345,29 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, Message, wParam, lParam);
 }
 
+void MainUpdate(HWND hWnd)
+{
+    // Handle window dragging
+    if (mouseIsDown == 1)
+    {
+        POINT cPos;
+        GetCursorPos(&cPos);
+
+        ralsei->x = cPos.x + wndMouseDragOffset.x;
+        ralsei->y = cPos.y + wndMouseDragOffset.y;
+        ralsei->SetVelocity(0, 0);
+
+        wndPosOld = cPos;
+    }
+    ralsei->Update(delta);
+    menu->Update(delta);
+    topicChoser->SetMenuPos(ralsei->x - topicChoser->width / 2, ralsei->y - 515);
+    topicChoser->Update(delta);
+    about->Update(delta);
+
+    Paint(hWnd);
+}
+
 
 void Paint(HWND hWnd)
 {
@@ -438,3 +462,49 @@ void Paint(HWND hWnd)
 }
 
 
+
+/*    typedef std::chrono::high_resolution_clock hrc;
+    static auto timer = hrc::now();
+    while (TRUE)
+    {
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT)
+                break;
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        else
+        {
+            long double milisec = (hrc::now() - timer).count() / (long double)1000000;
+            if (milisec >= delta * 1000)
+            {
+                timer = hrc::now();
+
+                // Handle window dragging
+                if (mouseIsDown == 1)
+                {
+                    POINT cPos;
+                    GetCursorPos(&cPos);
+
+                    ralsei->x = cPos.x + wndMouseDragOffset.x;
+                    ralsei->y = cPos.y + wndMouseDragOffset.y;
+                    ralsei->SetVelocity(0, 0);
+
+                    wndPosOld = cPos;
+                }
+                ralsei->Update(delta);
+                menu->Update(delta);
+                topicChoser->SetMenuPos(ralsei->x - topicChoser->width / 2, ralsei->y - 515);
+                topicChoser->Update(delta);
+                about->Update(delta);
+
+                Paint(hWnd);
+            }
+        }
+
+        while (GetMessage(&msg, NULL, 0, 0)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+    }*/

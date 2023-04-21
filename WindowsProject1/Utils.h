@@ -52,3 +52,10 @@ CString convo[]
     "Then do it!\nSchool is important!|||I'm not going to talk\nto you unless you\nfinished everything!|||(Wait, did you ask for\nmy help or something?)",
 };
 int convoIndex = -1;
+
+bool isDeviceCharging()
+{
+    SYSTEM_POWER_STATUS status;
+    GetSystemPowerStatus(&status);
+    return status.BatteryFlag & (BATTERY_FLAG_CHARGING | BATTERY_FLAG_NO_BATTERY);
+}
