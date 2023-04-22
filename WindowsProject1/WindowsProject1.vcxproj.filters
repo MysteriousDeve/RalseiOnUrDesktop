@@ -80,6 +80,7 @@
   <ItemGroup>
     <Text Include="font\8bitoperator\readme.txt" />
     <Text Include="font\8bitoperator_jve\readme.txt" />
+    <Text Include="config.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ttf1.bin">

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <chrono>
 #include <math.h>
+#include <fstream>
 
 #include <ObjIdl.h>
 #include <gdiplus.h>
@@ -28,6 +29,8 @@
 #pragma comment (lib,"msimg32.lib")
 #pragma comment (lib,"winmm.lib")
 #pragma comment (lib, "irrKlang.lib")
+
+#define R_EFFICIENCY L"--efficiency"
 
 
 using namespace std;
@@ -63,12 +66,30 @@ RightClickMenu* menu;
 RightClickMenu* topicChoser;
 About* about;
 
+bool efficiencyMode = false;
+bool forceEfficiencyMode = false;
+bool mainLoop = true;
+
 constexpr long double delta = 1 / 60.0;
 
 void Paint(HWND hWnd);
 void MainUpdate(HWND hWnd);
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
+    string myLine;
+    fstream myFile_Handler;
+    myFile_Handler.open("config.txt");
+    if (myFile_Handler.is_open())
+    {
+        while (getline(myFile_Handler, myLine))
+        {
+            forceEfficiencyMode = (myLine[0] == '1' ? true : false);
+        }
+    }
+    myFile_Handler.close();
+
+
+    // start winapi process
     SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 
     Width = GetSystemMetrics(SM_CXSCREEN);
@@ -121,15 +142,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     ralsei = new Ralsei();
     menu = new RightClickMenu
     { 
-        { L"Talk", L"Idle Mode", L"About", L"Exit" },
+        { L"Talk", L"Idle Mode", L"About", forceEfficiencyMode ? L"Toggle efficiency off" : L"Toggle efficiency on", L"Exit"},
         { 
             []() { topicChoser->On(); },
             []() { ralsei->SetMode(ModeIdle); },
             [hWnd]() { about->On(); SetCapture(hWnd); },
-            []() { exit(0); }
+            []() { forceEfficiencyMode = !forceEfficiencyMode; menu->SetOptionName(3, forceEfficiencyMode ? L"Toggle efficiency off" : L"Toggle efficiency on"); },
+            []() { mainLoop = false; }
         },
+        400
     };
-    menu->SetPostEvt([]() { menu->Off(); ReleaseCapture(); });
+    menu->SetPostEvt([](int i) { menu->Off(); ReleaseCapture(); });
 
     topicChoser = new RightClickMenu
     {
@@ -144,18 +167,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         },
         500
     };
-    topicChoser->SetPostEvt([]() { if (convoIndex != -1) ralsei->SetConvo(convo[convoIndex]); topicChoser->Off(); ReleaseCapture(); });
+    topicChoser->SetPostEvt([](int i) { if (convoIndex != -1) ralsei->SetConvo(convo[convoIndex]); topicChoser->Off(); ReleaseCapture(); });
     about = new About();
 
     if (!SetForegroundWindow(hWnd)) MessageBox(NULL, L"Can't bring to front", L"", MB_OK);
 
     MSG msg = { };
 
-    if (isDeviceCharging())
+    typedef std::chrono::high_resolution_clock hrc;
+    static auto timer = hrc::now();
+    SetTimer(hWnd, 0, delta * 1000, (TIMERPROC)WinProc);
+    while (mainLoop)
     {
-        typedef std::chrono::high_resolution_clock hrc;
-        static auto timer = hrc::now();
-        while (TRUE)
+        efficiencyMode = forceEfficiencyMode || !isDeviceCharging();
+        if (efficiencyMode)
+        {
+            if (!GetMessage(&msg, NULL, 0, 0)) break;
+
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        else
         {
             if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
             {
@@ -175,15 +207,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
             }
         }
     }
-    else
-    {
-        SetTimer(hWnd, 0, delta * 1000, (TIMERPROC)WinProc);
-        while (GetMessage(&msg, NULL, 0, 0))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-    }
+
+    myFile_Handler.open("config.txt");
+    myFile_Handler.clear();
+    myFile_Handler << (forceEfficiencyMode ? "1" : "0");
+    myFile_Handler.close();
 
     return 0;
 }
@@ -220,7 +248,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_TIMER:
         {
-            MainUpdate(hWnd);
+            if (efficiencyMode) MainUpdate(hWnd);
             break;
         }
 
@@ -336,10 +364,11 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
         case WM_DESTROY:
         {
+            int retCode = 0;
             delete ralsei; // Um... Kris...
             GdiplusShutdown(gdiToken);
-            PostQuitMessage(0);
-            return 0;
+            PostQuitMessage(retCode);
+            return retCode;
         }
     }
     return DefWindowProc(hWnd, Message, wParam, lParam);
@@ -507,4 +536,27 @@ void Paint(HWND hWnd)
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+
+
+
+
+
+
+
+
+            if (efficiencyMode ? false : isDeviceCharging())
+    {
+        while (TRUE)
+        {
+
+        }
+    }
+    else
+    {
+        while (GetMessage(&msg, NULL, 0, 0))
+        {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+    }
     }*/

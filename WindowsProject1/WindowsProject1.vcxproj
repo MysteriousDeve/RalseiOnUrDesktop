@@ -156,6 +156,7 @@
     <Font Include="font\8bitoperator_jve\8bitoperator_jve.ttf" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="config.txt" />
     <Text Include="font\8bitoperator\readme.txt" />
     <Text Include="font\8bitoperator_jve\readme.txt" />
   </ItemGroup>

@@ -25,7 +25,7 @@ class RightClickMenu : public Subwindow
 private:
 	vector<CString> options;
 	vector<std::function<void()>> eventCalls;
-	std::function<void()> postEvt = []() {};
+	std::function<void(int)> postEvt = [](int i) {};
 	int selectionIndex = -1;
 public:
 	int width;
@@ -36,7 +36,12 @@ public:
 		this->width = width;
 	}
 
-	void SetPostEvt(std::function<void()> postEvt)
+	void SetOptionName(int index, CString newOptionName)
+	{
+		options[index] = newOptionName;
+	}
+
+	void SetPostEvt(std::function<void(int)> postEvt)
 	{
 		this->postEvt = postEvt;
 	}
@@ -54,7 +59,7 @@ public:
 		int i = GetCurrentHoverChoice();
 		if (i < 0 || i >= eventCalls.size()) return false;
 		eventCalls[i]();
-		postEvt();
+		postEvt(i);
 		return true;
 	}
 
