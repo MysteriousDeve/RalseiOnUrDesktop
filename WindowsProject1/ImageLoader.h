@@ -288,7 +288,7 @@ public:
 					hasSaidHi = true;
 				}
 			}
-			if (isSpeaking) internalTime = 0;
+			if (IsSpeaking()) internalTime = 0;
 		}
 		textPrinter.Update(dt);
 	}
