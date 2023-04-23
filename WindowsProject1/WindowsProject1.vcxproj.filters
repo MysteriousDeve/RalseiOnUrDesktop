@@ -93,6 +93,7 @@
     <None Include="ikpFlac.dll" />
     <None Include="ikpMP3.dll" />
     <None Include="irrKlang.dll" />
+    <None Include="readme.md" />
   </ItemGroup>
   <ItemGroup>
     <Media Include="sound\snd_ralsei_yell.wav">
