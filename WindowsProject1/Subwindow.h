@@ -26,6 +26,7 @@ protected:
 public:
 	POINT pos = { 0, 0 };
 	Rect drawingRect = { 0, 0, 200, 200 };
+	double zOrder = 0;
 
 	Subwindow()
 	{
@@ -66,6 +67,29 @@ public:
 	{
 		return drawingRect.Contains(Point(pt.x, pt.y));
 	}
+
+	bool IsCursorInSubwindowRect()
+	{
+		POINT pt;
+		GetCursorPos(&pt);
+		return IsInSubwindowRect(pt);
+	}
 };
 
 
+class Substack
+{
+public:
+	vector<Subwindow> subwindows;
+
+	void Paint(Graphics* g, HDC hdc)
+	{
+		vector<Subwindow> sorted = subwindows;
+		sort(sorted.begin(), sorted.end(), [](Subwindow a, Subwindow b) { return a.zOrder < b.zOrder; });
+
+		for (Subwindow &s : subwindows)
+		{
+			s.Paint(g, hdc);
+		}
+	}
+};

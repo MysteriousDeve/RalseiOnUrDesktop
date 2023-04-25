@@ -133,9 +133,11 @@
     <ClInclude Include="ImageLoader.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="RightClickMenu.h" />
+    <ClInclude Include="Settings.h" />
     <ClInclude Include="Subwindow.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TextPrinter.h" />
+    <ClInclude Include="UIElement.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="WindowsProject1.h" />
   </ItemGroup>
@@ -158,8 +160,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="config.txt" />
-    <Text Include="font\8bitoperator\readme.txt" />
-    <Text Include="font\8bitoperator_jve\readme.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ikpFlac.dll" />

@@ -25,6 +25,7 @@
 #include "RightClickMenu.h"
 #include "Utils.h"
 #include "About.h"
+#include "Settings.h"
 #pragma comment (lib,"Gdiplus.lib")
 #pragma comment (lib,"msimg32.lib")
 #pragma comment (lib,"winmm.lib")
@@ -65,6 +66,7 @@ Ralsei* ralsei;
 RightClickMenu* menu;
 RightClickMenu* topicChoser;
 About* about;
+Settings* settings;
 
 bool efficiencyMode = false;
 bool forceEfficiencyMode = false;
@@ -142,12 +144,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     ralsei = new Ralsei();
     menu = new RightClickMenu
     { 
-        { L"Talk", L"Idle Mode", L"About", forceEfficiencyMode ? L"Toggle efficiency off" : L"Toggle efficiency on", L"Exit"},
+        { 
+            L"Talk", 
+            L"Idle Mode", 
+            L"About",
+            forceEfficiencyMode ? L"Toggle efficiency off" : L"Toggle efficiency on", 
+            L"Settings",
+            L"Exit"
+        },
         { 
             []() { topicChoser->On(); },
             []() { ralsei->SetMode(ModeIdle); },
-            [hWnd]() { about->On(); SetCapture(hWnd); },
+            [hWnd]() { if (!settings->IsOn()) { about->On(); SetCapture(hWnd); } },
             []() { forceEfficiencyMode = !forceEfficiencyMode; menu->SetOptionName(3, forceEfficiencyMode ? L"Toggle efficiency off" : L"Toggle efficiency on"); },
+            []() { settings->On(); },
             []() { mainLoop = false; }
         },
         400
@@ -169,6 +179,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     };
     topicChoser->SetPostEvt([](int i) { if (convoIndex != -1) ralsei->SetConvo(convo[convoIndex]); topicChoser->Off(); ReleaseCapture(); });
     about = new About();
+    settings = new Settings();
 
     if (!SetForegroundWindow(hWnd)) MessageBox(NULL, L"Can't bring to front", L"", MB_OK);
 
@@ -277,7 +288,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
                     if (!topicChoser->IsInSubwindowRect(cPos) && topicChoser->IsOn()) topicChoser->Off();
                 }
-                
             }
             break;
         }
@@ -296,6 +306,14 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
             }
             else
             {
+                if (settings->IsOn())
+                {
+                    if (settings->IsInSubwindowRect(cPos))
+                    {
+                        if (settings->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam));
+                    }
+                }
+
                 if (about->IsOn())
                 {
                     about->Off();
@@ -393,6 +411,7 @@ void MainUpdate(HWND hWnd)
     topicChoser->SetMenuPos(ralsei->x - topicChoser->width / 2, ralsei->y - 515);
     topicChoser->Update(delta);
     about->Update(delta);
+    settings->Update(delta);
 
     Paint(hWnd);
 }
@@ -470,6 +489,7 @@ void Paint(HWND hWnd)
     topicChoser->Paint(&g, hdcMem);
     about->Paint(&g, hdcMem);
     menu->Paint(&g, hdcMem);
+    settings->Paint(&g, hdcMem);
 
     // Done with off-screen bitmap and DC.
     POINT ptSrc = { 0 };

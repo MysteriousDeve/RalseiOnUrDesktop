@@ -19,21 +19,21 @@
 
 #include "Utils.h"
 #include "Subwindow.h"
-#include "UIElement.h"
 
 using namespace std;
 using namespace irrklang;
 
-class About : public Subwindow
+class Settings : public Subwindow
 {
 private:
 	int wWidth = 400, wHeight = 330;
 	ISoundEngine* engine;
-	const char* soundfile = "sound\\castletown_empty.ogg";
+	const char* soundfile = "sound\\snd_txtral_ch1.wav";
 	HFONT hFontSmall;
-	TextPrinter* prt;
+
+	Toggle* tog;
 public:
-	About() : Subwindow()
+	Settings() : Subwindow()
 	{
 		drawingRect = { (Width - wWidth) / 2, (Height - wHeight) / 2, wWidth, wHeight };
 		engine = createIrrKlangDevice();
@@ -53,29 +53,37 @@ public:
 			DEFAULT_PITCH,
 			"8bitoperator JVE"
 		);
-		prt = new TextPrinter(
-			"RalseiOnUrDesktop\nDeveloped by MysteriousDeve\nUse graphics and sounds\nfrom the game Deltarune\n(Have you felt fluffy yet?)\n\nClick anywhere to exit...", 
-			false, 0.32, "", 9999999, false);
+
+		tog = new Toggle(100);
+		tog->SetPos(drawingRect.X + 200, drawingRect.Y + 45);
 	}
 
 	void Update(double dt)
 	{
-		prt->Update(dt);
+		tog->Update(dt);
 	}
 
 	void On()
 	{
-		on = true;
+		((Subwindow*)this)->On();
 		if (!engine->isCurrentlyPlaying(soundfile)) engine->play2D(soundfile, true);
-		prt->Reset();
-		prt->isPlaying = true;
+		tog->On();
 	}
 
 	void Off()
 	{
-		on = false;
+		((Subwindow*)this)->Off();
 		engine->stopAllSounds();
-		prt->isPlaying = false;
+		tog->Off();
+	}
+
+	bool OnConfirmChoiceEvent(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
+	{
+		if (tog->IsCursorInSubwindowRect())
+		{
+			tog->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam);
+		}
+		return true;
 	}
 
 	void Paint(Graphics* g, HDC hdcMem)
@@ -102,7 +110,7 @@ public:
 			StringFormat strformat;
 			strformat.SetAlignment(StringAlignmentCenter);
 
-			CString s = "ABOUT";
+			CString s = "Ralsei's SETTINGS";
 			PointF drawPt = PointF(Width / 2, drawingRect.Y + 20);
 			g->DrawString(
 				s, wcslen(s),
@@ -112,7 +120,7 @@ public:
 			);
 
 			Font f2(hdcMem, hFontSmall);
-			CString s2 = prt->GetCurrent();
+			CString s2 = "lolololololololololol";
 			PointF drawPt2 = PointF(Width / 2, drawingRect.Y + 80);
 			g->DrawString(
 				s2, wcslen(s2),
@@ -120,6 +128,8 @@ public:
 				&strformat,
 				&textBrush
 			);
+
+			tog->Paint(g, hdcMem);
 		}
 	}
 };
