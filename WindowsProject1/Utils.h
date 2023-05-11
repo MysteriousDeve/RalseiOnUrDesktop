@@ -59,3 +59,53 @@ bool isDeviceCharging()
     GetSystemPowerStatus(&status);
     return status.BatteryFlag & (BATTERY_FLAG_CHARGING | BATTERY_FLAG_NO_BATTERY);
 }
+
+namespace Utils
+{
+    class Font
+    {
+    private:
+        HFONT font;
+        int height;
+        string name;
+    public:
+        Font() {}
+
+        Font(int height, string name)
+        {
+            font = CreateFontA(
+                height,
+                0,
+                0,
+                0,
+                FW_NORMAL,
+                FALSE,
+                FALSE,
+                FALSE,
+                DEFAULT_CHARSET,
+                OUT_OUTLINE_PRECIS,
+                CLIP_DEFAULT_PRECIS,
+                CLEARTYPE_QUALITY,
+                DEFAULT_PITCH,
+                name.c_str()
+            );
+            this->height = height;
+            this->name = name;
+        }
+
+        HFONT GetFont()
+        {
+            return font;
+        }
+
+        int GetHeight()
+        {
+            return height;
+        }
+
+        string GetName()
+        {
+            return name;
+        }
+    };
+}

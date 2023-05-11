@@ -10,6 +10,7 @@
 #include <ObjIdl.h>
 #include <gdiplus.h>
 #include <gdiplusheaders.h>
+#include <gdiplusfont.h>
 #include <gdipluspen.h>
 #include <gdiplusbrush.h>
 #include <uxtheme.h>
@@ -25,8 +26,15 @@ class Toggle : public Subwindow
 private:
 	std::function<void()> postEvt = []() {};
 	int value = 0;
+	Utils::Font* newfont;
 public:
 	int width;
+	Toggle(int width, Utils::Font* font) : Subwindow()
+	{
+		this->width = width;
+		this->newfont = font;
+	}
+
 	Toggle(int width) : Subwindow()
 	{
 		this->width = width;
@@ -72,14 +80,14 @@ public:
 
 		// Draw dialog box
 		drawingRect.Width = width;
-		drawingRect.Height = 40 + 25;
+		drawingRect.Height = newfont->GetHeight() + 10;
 
 		// Draw menu
-		Font f(hdcMem, hFont);
+		Font f(hdcMem, newfont->GetFont());
 		StringFormat strformat;
 
 		CString s = value ? "On" : "Off";
-		PointF drawPt = PointF(pos.x + 15, pos.y + 10);
+		PointF drawPt = PointF(pos.x + 15, pos.y);
 		g->DrawString(
 			s, wcslen(s),
 			&f, drawPt,

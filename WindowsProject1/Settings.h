@@ -26,62 +26,53 @@ using namespace irrklang;
 class Settings : public Subwindow
 {
 private:
-	int wWidth = 400, wHeight = 330;
+	int wWidth = 450, wHeight = 330;
 	ISoundEngine* engine;
 	const char* soundfile = "sound\\snd_txtral_ch1.wav";
-	HFONT hFontSmall;
+	Utils::Font* hFontSmall;
 
-	Toggle* tog;
+	vector<Toggle*> togs;
 public:
 	Settings() : Subwindow()
 	{
 		drawingRect = { (Width - wWidth) / 2, (Height - wHeight) / 2, wWidth, wHeight };
 		engine = createIrrKlangDevice();
-		hFontSmall = CreateFontA(
-			30,
-			0,
-			0,
-			0,
-			FW_NORMAL,
-			FALSE,
-			FALSE,
-			FALSE,
-			DEFAULT_CHARSET,
-			OUT_OUTLINE_PRECIS,
-			CLIP_DEFAULT_PRECIS,
-			CLEARTYPE_QUALITY,
-			DEFAULT_PITCH,
-			"8bitoperator JVE"
-		);
+		hFontSmall = new Utils::Font(30, "8bitoperator JVE");
 
-		tog = new Toggle(100);
-		tog->SetPos(drawingRect.X + 200, drawingRect.Y + 45);
+		for (int i = 0; i < 5; i++)
+		{
+			Toggle* t = new Toggle(100, hFontSmall);
+			t->SetPos(drawingRect.X + 250, drawingRect.Y + 80 + 40 * i);
+			togs.push_back(t);
+		}
 	}
 
 	void Update(double dt)
 	{
-		tog->Update(dt);
+		for (auto &t : togs) t->Update(dt);
 	}
 
 	void On()
 	{
 		((Subwindow*)this)->On();
-		if (!engine->isCurrentlyPlaying(soundfile)) engine->play2D(soundfile, true);
-		tog->On();
+		for (auto& t : togs) t->On();
 	}
 
 	void Off()
 	{
 		((Subwindow*)this)->Off();
-		engine->stopAllSounds();
-		tog->Off();
+		for (auto& t : togs) t->Off();
 	}
 
 	bool OnConfirmChoiceEvent(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 	{
-		if (tog->IsCursorInSubwindowRect())
+		for (auto& t : togs)
 		{
-			tog->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam);
+			if (t->IsCursorInSubwindowRect())
+			{
+				t->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam);
+				return true;
+			}
 		}
 		return true;
 	}
@@ -105,31 +96,42 @@ public:
 			DrawFineRect(g, &brush, drawingRect);
 			g->DrawRectangle(&pen, drawingRect);
 
-			// Draw menu
+
 			Font f(hdcMem, hFont);
-			StringFormat strformat;
-			strformat.SetAlignment(StringAlignmentCenter);
+			StringFormat titleFormat;
+			titleFormat.SetAlignment(StringAlignmentCenter);
+			StringFormat optionFormat;
+
 
 			CString s = "Ralsei's SETTINGS";
 			PointF drawPt = PointF(Width / 2, drawingRect.Y + 20);
 			g->DrawString(
 				s, wcslen(s),
 				&f, drawPt,
-				&strformat,
+				&titleFormat,
 				&textBrush
 			);
 
-			Font f2(hdcMem, hFontSmall);
-			CString s2 = "lolololololololololol";
-			PointF drawPt2 = PointF(Width / 2, drawingRect.Y + 80);
-			g->DrawString(
-				s2, wcslen(s2),
-				&f2, drawPt2,
-				&strformat,
-				&textBrush
-			);
-
-			tog->Paint(g, hdcMem);
+			Font f2(hdcMem, hFontSmall->GetFont());
+			CString s2[] =
+			{ 
+				"Efficiency Mode",
+				"Efficiency Mode2",
+				"Efficiency Mode3",
+				"Efficiency Mode4",
+				"Efficiency Mode5",
+			};
+			for (int i = 0; i < 5; i++)
+			{
+				PointF drawPt2 = PointF((Width - wWidth) / 2 + 20, drawingRect.Y + 80 + i * 40);
+				g->DrawString(
+					s2[i], wcslen(s2[i]),
+					&f2, drawPt2,
+					&optionFormat,
+					&textBrush
+				);
+			}
+			for (auto& t : togs) t->Paint(g, hdcMem);
 		}
 	}
 };
