@@ -31,7 +31,11 @@ private:
 	const char* soundfile = "sound\\snd_txtral_ch1.wav";
 	Utils::Font* hFontSmall;
 
-	vector<Toggle*> togs;
+	vector<shared_ptr<Toggle>> togs;
+	shared_ptr<Button> confirm;
+	shared_ptr<Button> cancel;
+
+	Substack substack;
 public:
 	Settings() : Subwindow()
 	{
@@ -41,27 +45,23 @@ public:
 
 		for (int i = 0; i < 5; i++)
 		{
-			Toggle* t = new Toggle(100, hFontSmall);
+			shared_ptr<Toggle> t = make_shared<Toggle>(100, hFontSmall);
 			t->SetPos(drawingRect.X + 250, drawingRect.Y + 80 + 40 * i);
 			togs.push_back(t);
+			substack.Add(t);
 		}
+
+		confirm = make_shared<Button>(100, hFontSmall, "Confirm");
+		confirm->SetPos(drawingRect.X, drawingRect.Y + 300);
+		cancel = make_shared<Button>(100, hFontSmall, "Cancel");
+		cancel->SetPos(drawingRect.X + 200, drawingRect.Y + 300);
+
+		substack.AddMultiple({ confirm, cancel });
 	}
 
 	void Update(double dt)
 	{
-		for (auto &t : togs) t->Update(dt);
-	}
-
-	void On()
-	{
-		((Subwindow*)this)->On();
-		for (auto& t : togs) t->On();
-	}
-
-	void Off()
-	{
-		((Subwindow*)this)->Off();
-		for (auto& t : togs) t->Off();
+		substack.Update(dt);
 	}
 
 	bool OnConfirmChoiceEvent(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
@@ -90,48 +90,46 @@ public:
 		pen.SetAlignment(PenAlignmentInset);
 		pen2.SetAlignment(PenAlignmentInset);
 
-		if (IsOn())
+		// Draw dialog box
+		DrawFineRect(g, &brush, drawingRect);
+		g->DrawRectangle(&pen, drawingRect);
+
+
+		Font f(hdcMem, hFont);
+		StringFormat titleFormat;
+		titleFormat.SetAlignment(StringAlignmentCenter);
+		StringFormat optionFormat;
+
+
+		CString s = "Ralsei's SETTINGS";
+		PointF drawPt = PointF(Width / 2, drawingRect.Y + 20);
+		g->DrawString(
+			s, wcslen(s),
+			&f, drawPt,
+			&titleFormat,
+			&textBrush
+		);
+
+		Font f2(hdcMem, hFontSmall->GetFont());
+		CString s2[] =
 		{
-			// Draw dialog box
-			DrawFineRect(g, &brush, drawingRect);
-			g->DrawRectangle(&pen, drawingRect);
-
-
-			Font f(hdcMem, hFont);
-			StringFormat titleFormat;
-			titleFormat.SetAlignment(StringAlignmentCenter);
-			StringFormat optionFormat;
-
-
-			CString s = "Ralsei's SETTINGS";
-			PointF drawPt = PointF(Width / 2, drawingRect.Y + 20);
+			"Efficiency Mode",
+			"Efficiency Mode2",
+			"Efficiency Mode3",
+			"Efficiency Mode4",
+			"Efficiency Mode5",
+		};
+		for (int i = 0; i < 5; i++)
+		{
+			PointF drawPt2 = PointF((Width - wWidth) / 2 + 20, drawingRect.Y + 80 + i * 40);
 			g->DrawString(
-				s, wcslen(s),
-				&f, drawPt,
-				&titleFormat,
+				s2[i], wcslen(s2[i]),
+				&f2, drawPt2,
+				&optionFormat,
 				&textBrush
 			);
-
-			Font f2(hdcMem, hFontSmall->GetFont());
-			CString s2[] =
-			{ 
-				"Efficiency Mode",
-				"Efficiency Mode2",
-				"Efficiency Mode3",
-				"Efficiency Mode4",
-				"Efficiency Mode5",
-			};
-			for (int i = 0; i < 5; i++)
-			{
-				PointF drawPt2 = PointF((Width - wWidth) / 2 + 20, drawingRect.Y + 80 + i * 40);
-				g->DrawString(
-					s2[i], wcslen(s2[i]),
-					&f2, drawPt2,
-					&optionFormat,
-					&textBrush
-				);
-			}
-			for (auto& t : togs) t->Paint(g, hdcMem);
 		}
+		substack.Paint(g, hdcMem);
+
 	}
 };

@@ -15,14 +15,13 @@
 #include <uxtheme.h>
 #include <atlstr.h>
 #include <functional>
-
 #include "Utils.h"
 using namespace std;
 
 class Subwindow
 {
 protected:
-	bool on = false;
+	bool on = true;
 public:
 	POINT pos = { 0, 0 };
 	Rect drawingRect = { 0, 0, 200, 200 };
@@ -74,22 +73,45 @@ public:
 		GetCursorPos(&pt);
 		return IsInSubwindowRect(pt);
 	}
-};
+}; typedef std::shared_ptr<Subwindow> SubwPtr;
 
 
 class Substack
 {
+private:
+	vector<SubwPtr> subwindows;
+
 public:
-	vector<Subwindow> subwindows;
 
 	void Paint(Graphics* g, HDC hdc)
 	{
-		vector<Subwindow> sorted = subwindows;
-		sort(sorted.begin(), sorted.end(), [](Subwindow a, Subwindow b) { return a.zOrder < b.zOrder; });
+		vector<SubwPtr> sorted = subwindows;
+		sort(sorted.begin(), sorted.end(), [](SubwPtr a, SubwPtr b) { return a->zOrder < b->zOrder; });
 
-		for (Subwindow &s : subwindows)
+		for (SubwPtr s : subwindows)
 		{
-			s.Paint(g, hdc);
+			s->Paint(g, hdc);
 		}
+	}
+
+	void Update(double dt)
+	{
+		vector<SubwPtr> sorted = subwindows;
+		sort(sorted.begin(), sorted.end(), [](SubwPtr a, SubwPtr b) { return a->zOrder < b->zOrder; });
+
+		for (SubwPtr s : subwindows)
+		{
+			s->Update(dt);
+		}
+	}
+
+	void Add(SubwPtr sub)
+	{
+		subwindows.push_back(sub);
+	}
+
+	void AddMultiple(vector<SubwPtr> subs)
+	{
+		subwindows.insert(subwindows.end(), subs.begin(), subs.end());
 	}
 };
