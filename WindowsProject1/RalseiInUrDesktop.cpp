@@ -1,38 +1,15 @@
-#include <Windows.h>
-#include <WinUser.h>
-#include <shlwapi.h>
-#include <algorithm>
-#include <chrono>
-#include <math.h>
-#include <fstream>
-
-#include <ObjIdl.h>
-#include <gdiplus.h>
-#include <gdiplusheaders.h>
-#include <gdipluspen.h>
-#include <gdiplusbrush.h>
-#include <uxtheme.h>
-#include <atlstr.h>
-#include <shellscalingapi.h>
-#include <functional>
-#pragma comment (lib,"shcore.lib")
-
-#include "TextPrinter.h"
 #include "resource.h"
-#pragma comment (lib, "uxtheme.lib")
+#include "framework.h"
+#include "TextPrinter.h"
 
 #include "ImageLoader.h"
 #include "RightClickMenu.h"
 #include "Utils.h"
 #include "About.h"
 #include "Settings.h"
-#pragma comment (lib,"Gdiplus.lib")
-#pragma comment (lib,"msimg32.lib")
-#pragma comment (lib,"winmm.lib")
-#pragma comment (lib, "irrKlang.lib")
+#include "Platform.h"
 
 #define R_EFFICIENCY L"--efficiency"
-
 
 using namespace std;
 using namespace Gdiplus;
@@ -76,8 +53,17 @@ constexpr long double delta = 1 / 60.0;
 
 void Paint(HWND hWnd);
 void MainUpdate(HWND hWnd);
+HRESULT AddThumbarButtons(HWND hwnd, HIMAGELIST himl, HIMAGELIST himlHot);
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
+    HRESULT hr = S_OK;
+
+    // Enable run-time memory check for debug builds.
+#if defined(DEBUG) | defined(_DEBUG)
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+    
+
     string myLine;
     fstream myFile_Handler;
     myFile_Handler.open("config.txt");
@@ -93,52 +79,19 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
 
     // start winapi process
     SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
-
-    Width = GetSystemMetrics(SM_CXSCREEN);
-    Height = GetSystemMetrics(SM_CYSCREEN) - 1;
-
     GdiplusStartup(&gdiToken, &startInput, NULL);
 
 
-    // Create windows
-    const wchar_t CLASS_NAME[] = L"Hello guys!";
-    HCURSOR cursor[]
+    // [Platform] Create a window.
+    std::shared_ptr<Platform> winMain = std::shared_ptr<Platform>(new Platform());
+    hr = winMain->CreatePlatform(WinProc);
+    if (hr != S_OK)
     {
-        LoadCursor(0, IDC_ARROW),
-        LoadCursor(0, IDC_HAND)
-    };
-    WNDCLASSEX wClass = {};
-    wClass.cbClsExtra = NULL;
-    wClass.cbSize = sizeof(WNDCLASSEX);
-    wClass.cbWndExtra = NULL;
-    wClass.hbrBackground = CreateSolidBrush(RGB(0, 0, 0));
-    wClass.hCursor = cursor[0];
-    wClass.hIcon = LoadIcon(0, IDI_APPLICATION);
-    wClass.hInstance = hInstance;
-    wClass.lpfnWndProc = WinProc;
-    wClass.lpszClassName = CLASS_NAME;
-    wClass.style = NULL;
-    RegisterClassEx(&wClass);
-
-    HWND hWnd = CreateWindowExW
-    (
-        WS_EX_TOPMOST | WS_EX_LAYERED,
-        CLASS_NAME,
-        L"Hello!",
-        WS_POPUP,
-        0, 0, Width, Height,
-        NULL,
-        NULL,
-        hInstance,
-        NULL
-    ); 
-
-    if (hWnd == NULL)
-    {
-        MessageBox(NULL, L"ERROR CREATING WINDOW!", L"ERROR!", MB_OK);
-        return 0;
+        return -999;
     }
-    ShowWindow(hWnd, SW_SHOW);
+    HWND hWnd = winMain->GetWindowHandle();
+    AddThumbarButtons(hWnd, NULL, NULL);
+
 
     // UI definition
     ralsei = new Ralsei();
@@ -180,8 +133,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     topicChoser->SetPostEvt([](int i) { if (convoIndex != -1) ralsei->SetConvo(convo[convoIndex]); topicChoser->Off(); ReleaseCapture(); });
     about = new About();
     settings = new Settings();
-
-    if (!SetForegroundWindow(hWnd)) MessageBox(NULL, L"Can't bring to front", L"", MB_OK);
 
     MSG msg = { };
 
@@ -508,6 +459,55 @@ void Paint(HWND hWnd)
     DeleteObject(hbmMem);
     DeleteDC(hdcMem);
     ReleaseDC(NULL, hdc);
+}
+
+
+HRESULT AddThumbarButtons(HWND hwnd, HIMAGELIST himl, HIMAGELIST himlHot)
+{
+    return 0;
+
+    // Define an array of two buttons. These buttons provide images through an 
+    // image list and also provide tooltips.
+    THUMBBUTTONMASK dwMask = THB_BITMAP | THB_TOOLTIP | THB_FLAGS;
+
+    THUMBBUTTON thbButtons[2];
+    thbButtons[0].dwMask = dwMask;
+    thbButtons[0].iId = 0;
+    thbButtons[0].iBitmap = 0;
+    thbButtons[0].dwFlags = THBF_DISMISSONCLICK;
+
+    dwMask = THB_BITMAP | THB_TOOLTIP;
+    thbButtons[1].dwMask = dwMask;
+    thbButtons[1].iId = 1;
+    thbButtons[1].iBitmap = 1;
+
+    // Create an instance of ITaskbarList3
+    ITaskbarList3* ptbl;
+    HRESULT hr = CoCreateInstance(CLSID_TaskbarList,
+        NULL,
+        CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(&ptbl)
+    );
+
+    if (SUCCEEDED(hr))
+    {
+        // Declare the image list that contains the button images.
+        hr = ptbl->ThumbBarSetImageList(hwnd, himl);
+
+        if (SUCCEEDED(hr))
+        {
+            // Attach the toolbar to the thumbnail.
+            hr = ptbl->ThumbBarAddButtons(hwnd, ARRAYSIZE(thbButtons), thbButtons);
+        }
+        else
+        {
+            DWORD dwError = GetLastError();
+            MessageBox(NULL, L"Error thumbbar!", std::to_wstring(dwError).c_str(), MB_OK);
+            //exit(-1);
+        }
+        ptbl->Release();
+    }
+    return hr;
 }
 
 

@@ -131,6 +131,7 @@
     <ClInclude Include="About.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImageLoader.h" />
+    <ClInclude Include="Platform.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="RightClickMenu.h" />
     <ClInclude Include="Settings.h" />
@@ -139,13 +140,14 @@
     <ClInclude Include="TextPrinter.h" />
     <ClInclude Include="UIElement.h" />
     <ClInclude Include="Utils.h" />
-    <ClInclude Include="WindowsProject1.h" />
+    <ClInclude Include="RalseiInUrDesktop.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ImageLoader.cpp" />
+    <ClCompile Include="Platform.cpp" />
     <ClCompile Include="Scrap.cpp" />
     <ClCompile Include="TextPrinter.cpp" />
-    <ClCompile Include="WindowsProject1.cpp" />
+    <ClCompile Include="RalseiInUrDesktop.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WindowsProject1.rc" />
