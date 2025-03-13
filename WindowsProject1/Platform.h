@@ -20,6 +20,7 @@ public:
     );
 
     HRESULT Run();
+    HRESULT AddThumbarButtons(HWND hwnd);
 
 private:
     // Desktop window resources

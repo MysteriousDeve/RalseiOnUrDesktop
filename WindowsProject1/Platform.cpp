@@ -78,6 +78,7 @@ HRESULT Platform::CreatePlatform(WNDPROC customProc)
     }
 
     ShowWindow(m_hWnd, SW_SHOW);
+    AddThumbarButtons(m_hWnd);
     if (!SetForegroundWindow(m_hWnd)) MessageBox(NULL, L"Can't bring to front", L"", MB_OK);
     return S_OK;
 }
@@ -111,10 +112,9 @@ HRESULT Platform::Run()
         else
         {
             // Update the scene.
-
             // Render frames during idle time (when no messages are waiting).
-
             // Present the frame to the screen.
+            DwmFlush();
         }
     }
 
@@ -162,4 +162,54 @@ LRESULT CALLBACK Platform::StaticWindowProc(
     }
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+
+HRESULT Platform::AddThumbarButtons(HWND hwnd)
+{
+    HIMAGELIST hImageList = ImageList_LoadBitmap(m_hInstance, MAKEINTRESOURCEW(IDI_SMALL), 16, 0, RGB(255, 0, 255));
+    ImageList_Add(hImageList, LoadBitmap(m_hInstance, MAKEINTRESOURCE(IDI_SMALL)), NULL);
+
+    // Define an array of two buttons. These buttons provide images through an 
+    // image list and also provide tooltips.
+    THUMBBUTTONMASK dwMask = THB_BITMAP | THB_FLAGS;
+
+    THUMBBUTTON thbButtons[2] = {};
+    thbButtons[0].dwMask = dwMask;
+    thbButtons[0].iId = 0;
+    thbButtons[0].iBitmap = 0;
+    thbButtons[0].dwFlags = THBF_DISMISSONCLICK;
+
+    dwMask = THB_BITMAP | THB_TOOLTIP;
+    thbButtons[1].dwMask = dwMask;
+    thbButtons[1].iId = 1;
+    thbButtons[1].iBitmap = 1;
+
+    // Create an instance of ITaskbarList3
+    ITaskbarList3* ptbl;
+    HRESULT hr = CoCreateInstance(CLSID_TaskbarList,
+        NULL,
+        CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(&ptbl)
+    );
+
+    if (SUCCEEDED(hr))
+    {
+        // Declare the image list that contains the button images.
+        hr = ptbl->ThumbBarSetImageList(hwnd, hImageList);
+
+        if (true)//SUCCEEDED(hr))
+        {
+            // Attach the toolbar to the thumbnail.
+            hr = ptbl->ThumbBarAddButtons(hwnd, ARRAYSIZE(thbButtons), thbButtons);
+        }
+        else
+        {
+            DWORD dwError = GetLastError();
+            MessageBox(NULL, L"Error thumbbar!", std::to_wstring(dwError).c_str(), MB_OK);
+            exit(-1);
+        }
+        ptbl->Release();
+    }
+    return hr;
 }

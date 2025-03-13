@@ -53,7 +53,6 @@ constexpr long double delta = 1 / 60.0;
 
 void Paint(HWND hWnd);
 void MainUpdate(HWND hWnd);
-HRESULT AddThumbarButtons(HWND hwnd, HIMAGELIST himl, HIMAGELIST himlHot);
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
     HRESULT hr = S_OK;
@@ -63,7 +62,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
     
-
     string myLine;
     fstream myFile_Handler;
     myFile_Handler.open("config.txt");
@@ -90,8 +88,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         return -999;
     }
     HWND hWnd = winMain->GetWindowHandle();
-    AddThumbarButtons(hWnd, NULL, NULL);
-
 
     // UI definition
     ralsei = new Ralsei();
@@ -139,7 +135,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     typedef std::chrono::high_resolution_clock hrc;
     static auto timer = hrc::now();
     SetTimer(hWnd, 0, delta * 1000, (TIMERPROC)WinProc);
-    while (mainLoop)
+
+    // Old main loop
+    while (false && mainLoop)
     {
         efficiencyMode = forceEfficiencyMode || !isDeviceCharging();
         if (efficiencyMode)
@@ -160,15 +158,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
             }
             else
             {
-                long double milisec = (hrc::now() - timer).count() / (long double)1000000;
-                if (milisec >= delta * 1000)
-                {
-                    timer = hrc::now();
-                    MainUpdate(hWnd);
-                }
+                MainUpdate(hWnd);
+                DwmFlush();
+
+                //long double milisec = (hrc::now() - timer).count() / (long double)1000000;
+                //if (milisec >= delta * 1000)
+                //{
+                //    timer = hrc::now();
+                //    MainUpdate(hWnd);
+                //}
             }
         }
     }
+
+    // New main loop
+    winMain->Run();
 
     myFile_Handler.open("config.txt");
     myFile_Handler.clear();
@@ -459,55 +463,6 @@ void Paint(HWND hWnd)
     DeleteObject(hbmMem);
     DeleteDC(hdcMem);
     ReleaseDC(NULL, hdc);
-}
-
-
-HRESULT AddThumbarButtons(HWND hwnd, HIMAGELIST himl, HIMAGELIST himlHot)
-{
-    return 0;
-
-    // Define an array of two buttons. These buttons provide images through an 
-    // image list and also provide tooltips.
-    THUMBBUTTONMASK dwMask = THB_BITMAP | THB_TOOLTIP | THB_FLAGS;
-
-    THUMBBUTTON thbButtons[2];
-    thbButtons[0].dwMask = dwMask;
-    thbButtons[0].iId = 0;
-    thbButtons[0].iBitmap = 0;
-    thbButtons[0].dwFlags = THBF_DISMISSONCLICK;
-
-    dwMask = THB_BITMAP | THB_TOOLTIP;
-    thbButtons[1].dwMask = dwMask;
-    thbButtons[1].iId = 1;
-    thbButtons[1].iBitmap = 1;
-
-    // Create an instance of ITaskbarList3
-    ITaskbarList3* ptbl;
-    HRESULT hr = CoCreateInstance(CLSID_TaskbarList,
-        NULL,
-        CLSCTX_INPROC_SERVER,
-        IID_PPV_ARGS(&ptbl)
-    );
-
-    if (SUCCEEDED(hr))
-    {
-        // Declare the image list that contains the button images.
-        hr = ptbl->ThumbBarSetImageList(hwnd, himl);
-
-        if (SUCCEEDED(hr))
-        {
-            // Attach the toolbar to the thumbnail.
-            hr = ptbl->ThumbBarAddButtons(hwnd, ARRAYSIZE(thbButtons), thbButtons);
-        }
-        else
-        {
-            DWORD dwError = GetLastError();
-            MessageBox(NULL, L"Error thumbbar!", std::to_wstring(dwError).c_str(), MB_OK);
-            //exit(-1);
-        }
-        ptbl->Release();
-    }
-    return hr;
 }
 
 

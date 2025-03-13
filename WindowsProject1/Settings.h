@@ -39,7 +39,7 @@ private:
 public:
 	Settings() : Subwindow()
 	{
-		drawingRect = { (Width - wWidth) / 2, (Height - wHeight) / 2, wWidth, wHeight };
+		Rect drawingRect = { (Width - wWidth) / 2, (Height - wHeight) / 2, wWidth, wHeight };
 		engine = createIrrKlangDevice();
 		hFontSmall = new Utils::Font(30, "8bitoperator JVE");
 
@@ -91,6 +91,7 @@ public:
 		pen2.SetAlignment(PenAlignmentInset);
 
 		// Draw dialog box
+		Rect drawingRect = ToRect();
 		DrawFineRect(g, &brush, drawingRect);
 		g->DrawRectangle(&pen, drawingRect);
 
@@ -130,6 +131,5 @@ public:
 			);
 		}
 		substack.Paint(g, hdcMem);
-
 	}
 };

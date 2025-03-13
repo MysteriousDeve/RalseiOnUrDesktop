@@ -61,8 +61,6 @@ public:
 	{
 		pos.x = x;
 		pos.y = y;
-		drawingRect.X = x;
-		drawingRect.Y = y;
 	}
 
 	void On()
@@ -79,6 +77,7 @@ public:
 		Gdiplus::SolidBrush textBrushHightlighted(Color(255, 255, 255, 0));
 
 		// Draw dialog box
+		Rect drawingRect = {};
 		drawingRect.Width = width;
 		drawingRect.Height = newfont->GetHeight() + 10;
 
@@ -141,8 +140,6 @@ public:
 	{
 		pos.x = x;
 		pos.y = y;
-		drawingRect.X = x;
-		drawingRect.Y = y;
 	}
 
 	void On()
@@ -159,6 +156,7 @@ public:
 		Gdiplus::SolidBrush textBrushHightlighted(Color(255, 255, 255, 0));
 
 		// Draw dialog box
+		Rect drawingRect = {};
 		drawingRect.Width = width;
 		drawingRect.Height = newfont->GetHeight() + 10;
 

@@ -19,6 +19,53 @@ enum ClipLoopMode
 	None
 };
 
+
+struct Vector2Int
+{
+	int x, y;
+	Vector2Int(int x, int y)
+	{
+		this->x = x;
+		this->y = y;
+	}
+
+	Vector2Int(POINT pt)
+	{
+		this->x = pt.x;
+		this->y = pt.y;
+	}
+
+	operator POINT()
+	{
+		POINT p;
+		p.x = x;
+		p.y = y;
+		return p;
+	}
+
+	Vector2Int operator+(Vector2Int other)
+	{
+		return Vector2Int(x + other.x, y + other.y);
+	}
+
+	Vector2Int operator-(Vector2Int other)
+	{
+		return Vector2Int(x - other.x, y - other.y);
+	}
+
+	Vector2Int operator*(int other)
+	{
+		return Vector2Int(x * other, y * other);
+	}
+
+	Vector2Int operator/(int other)
+	{
+		return Vector2Int(x / other, y / other);
+	}
+};
+
+
+
 struct Vector2
 {
 	double x, y;
@@ -26,6 +73,46 @@ struct Vector2
 	{
 		this->x = x;
 		this->y = y;
+	}
+
+	Vector2(POINT pt)
+	{
+		this->x = pt.x;
+		this->y = pt.y;
+	}
+
+	Vector2(Vector2Int vec)
+	{
+		this->x = vec.x;
+		this->y = vec.y;
+	}
+
+	operator POINT()
+	{
+		POINT p;
+		p.x = x;
+		p.y = y;
+		return p;
+	}
+
+	Vector2 operator+(Vector2 other)
+	{
+		return Vector2(x + other.x, y + other.y);
+	}
+
+	Vector2 operator-(Vector2 other)
+	{
+		return Vector2(x - other.x, y - other.y);
+	}
+
+	Vector2 operator*(double other)
+	{
+		return Vector2(x * other, y * other);
+	}
+
+	Vector2 operator/(double other)
+	{
+		return Vector2(x / other, y / other);
 	}
 };
 
@@ -110,11 +197,13 @@ enum RalseiState
 	Shock,
 	Fell
 };
+
 enum RalseiMode
 {
 	ModeNone,
 	ModeIdle
 };
+
 class Ralsei
 {
 private:
@@ -164,6 +253,7 @@ public:
 
 		vxo = velx; vyo = vely;
 		engine = createIrrKlangDevice();
+		isSpeaking = false;
 	}
 
 	void SetMode(RalseiMode mode)

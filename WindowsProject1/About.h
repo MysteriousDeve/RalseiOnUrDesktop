@@ -35,7 +35,7 @@ private:
 public:
 	About() : Subwindow()
 	{
-		drawingRect = { (Width - wWidth) / 2, (Height - wHeight) / 2, wWidth, wHeight };
+		Rect drawingRect = { (Width - wWidth) / 2, (Height - wHeight) / 2, wWidth, wHeight };
 		engine = createIrrKlangDevice();
 		hFontSmall = CreateFontA(
 			30,
@@ -55,7 +55,7 @@ public:
 		);
 		prt = new TextPrinter(
 			"RalseiOnUrDesktop\nDeveloped by MysteriousDeve\nUse graphics and sounds\nfrom the game Deltarune\n(Have you felt fluffy yet?)\n\nClick anywhere to exit...", 
-			false, 0.32, "", 9999999, false);
+			false, 2, "", 9999999, false);
 	}
 
 	void Update(double dt)
@@ -94,6 +94,7 @@ public:
 		if (IsOn())
 		{
 			// Draw dialog box
+			Rect drawingRect = ToRect();
 			DrawFineRect(g, &brush, drawingRect);
 			g->DrawRectangle(&pen, drawingRect);
 
@@ -103,7 +104,7 @@ public:
 			strformat.SetAlignment(StringAlignmentCenter);
 
 			CString s = "ABOUT";
-			PointF drawPt = PointF(Width / 2, drawingRect.Y + 20);
+			PointF drawPt = PointF(Width / 2, pos.y + 20);
 			g->DrawString(
 				s, wcslen(s),
 				&f, drawPt,
@@ -113,7 +114,7 @@ public:
 
 			Font f2(hdcMem, hFontSmall);
 			CString s2 = prt->GetCurrent();
-			PointF drawPt2 = PointF(Width / 2, drawingRect.Y + 80);
+			PointF drawPt2 = PointF(Width / 2, pos.y + 80);
 			g->DrawString(
 				s2, wcslen(s2),
 				&f2, drawPt2,

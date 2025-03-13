@@ -34,6 +34,8 @@ public:
 		this->options = options;
 		this->eventCalls = eventCalls;
 		this->width = width;
+
+		hook = { 0, 1 };
 	}
 
 	void SetOptionName(int index, CString newOptionName)
@@ -65,12 +67,11 @@ public:
 
 	int GetCurrentHoverChoice()
 	{
-		POINT pt;
-		GetCursorPos(&pt);
+		Vector2Int pt = GetCursorPosition();
 
 		for (int i = 0; i < options.size(); i++)
 		{
-			Rect r = { pos.x + 5, pos.y + 10 + 40 * i, drawingRect.Width - 10, 35 };
+			Gdiplus::Rect r = { (int)pos.x + 5, (int)pos.y + 10 + 40 * i, (int)size.x - 10, 35 };
 			BOOL b = r.Contains(pt.x, pt.y);
 			if (b)
 			{
@@ -82,17 +83,13 @@ public:
 
 	void SetMenuToMousePos()
 	{
-		GetCursorPos(&pos);
-		drawingRect.X = pos.x;
-		drawingRect.Y = pos.y;
+		pos = GetCursorPosition();
 	}
 
 	void SetMenuPos(int x, int y)
 	{
 		pos.x = x;
 		pos.y = y;
-		drawingRect.X = x;
-		drawingRect.Y = y;
 	}
 
 	void On()
@@ -124,7 +121,10 @@ public:
 
         if (IsOn())
         {
+			Vector2 hookedPos = GetPositionHooked();
+
             // Draw dialog box
+			Rect drawingRect = {(int)pos.x, (int)pos.y, (int)size.x, (int)(40 * options.size() + 25) };
 			drawingRect.Width = width;
 			drawingRect.Height = 40 * options.size() + 25;
             DrawFineRect(g, &brush, drawingRect);
@@ -136,7 +136,7 @@ public:
 			for (int i = 0; i < options.size(); i++)
 			{
 				CString s = options[i];
-				PointF drawPt = PointF(pos.x + 15, pos.y + 10 + 40 * i);
+				Gdiplus::PointF drawPt = Gdiplus::PointF(hookedPos.x + 15, hookedPos.y + 10 + 40 * i);
 				g->DrawString(
 					s, wcslen(s), 
 					&f, drawPt,

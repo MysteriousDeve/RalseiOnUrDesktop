@@ -6,6 +6,7 @@
 
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN  // Exclude rarely-used stuff from Windows headers
+
 // Windows Header Files
 #include <windows.h>
 #include <WinUser.h>
@@ -39,6 +40,10 @@
 // DirectX
 #include <direct.h>
 #include <d2d1.h>
+#include <dwmapi.h>
+
+// Project file
+#include "Resource.h"
 
 // Libraries
 #pragma comment (lib,"shcore.lib")
@@ -47,3 +52,6 @@
 #pragma comment (lib,"winmm.lib")
 #pragma comment (lib, "irrKlang.lib")
 #pragma comment (lib, "uxtheme.lib")
+#pragma comment (lib, "comctl32")
+#pragma comment (lib, "dwmapi.lib")
+

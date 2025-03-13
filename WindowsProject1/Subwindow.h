@@ -21,11 +21,19 @@ using namespace std;
 class Subwindow
 {
 protected:
-	bool on = true;
+	bool on = false;
 public:
-	POINT pos = { 0, 0 };
-	Rect drawingRect = { 0, 0, 200, 200 };
+	Vector2 pos = { 0, 0 };
+	Vector2 size = { 200, 200 };
 	double zOrder = 0;
+	Vector2 hook = { 0, 0 };
+
+	// Currently only return the non-hooked position
+	Vector2 GetPositionHooked()
+	{
+		return pos;
+		// return Vector2(pos.x + drawingRect.Width * hook.x, pos.y + drawingRect.Width * hook.y);
+	}
 
 	Subwindow()
 	{
@@ -62,9 +70,9 @@ public:
 		if (!IsOn()) return;
 	}
 
-	bool IsInSubwindowRect(POINT pt)
+	bool IsInSubwindowRect(Vector2 pt)
 	{
-		return drawingRect.Contains(Point(pt.x, pt.y));
+		return pos.x < pt.x and pos.y < pt.y and pos.x + size.x > pt.x and pos.y + size.y > pt.y;
 	}
 
 	bool IsCursorInSubwindowRect()
@@ -72,6 +80,19 @@ public:
 		POINT pt;
 		GetCursorPos(&pt);
 		return IsInSubwindowRect(pt);
+	}
+
+	Vector2Int GetCursorPosition()
+	{
+		POINT pt;
+		GetCursorPos(&pt);
+		Vector2Int cursorPos = Vector2Int(pt);
+		return cursorPos;
+	}
+
+	Rect ToRect()
+	{
+		return Rect(pos.x, pos.y, size.x, size.y);
 	}
 }; typedef std::shared_ptr<Subwindow> SubwPtr;
 
