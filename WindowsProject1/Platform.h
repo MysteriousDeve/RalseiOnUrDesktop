@@ -1,10 +1,13 @@
 #pragma once
 #include "framework.h"
-#include <string>
+#include "Subwindow.h"
+#include <map>
 
-class Platform
+class Platform : public Subwindow
 {
 public:
+    static Platform* topParent;
+
     Platform();
     ~Platform();
 
@@ -20,13 +23,28 @@ public:
     );
 
     HRESULT Run();
+    HRESULT Render();
     HRESULT AddThumbarButtons(HWND hwnd);
+    Vector2Int GetDimension();
+    void TreeUpdate(double dt)
+    {
+        _Update(dt);
+    }
+    void TreePaint(Graphics* g, HDC hdcMem)
+    {
+        _Paint(g, hdcMem);
+    }
+    void TreeEvent(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
+    {
+        _Evt(Message, wParam, lParam);
+    }
 
 private:
     // Desktop window resources
-    HMENU     m_hMenu;
-    RECT      m_rc;
-    HWND      m_hWnd;
+    HMENU      m_hMenu;
+    RECT       m_rc;
+    Vector2Int m_windowSize;
+    HWND       m_hWnd;
 };
 
 

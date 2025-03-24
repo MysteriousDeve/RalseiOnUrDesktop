@@ -1,9 +1,14 @@
 #include "Platform.h"
 
+// Static decl
+Platform* Platform::topParent = nullptr;
+
 // Constructor
-Platform::Platform()
+Platform::Platform() : Subwindow::Subwindow()
 {
-    m_windowClassName = L"Direct3DWindowClass";
+    On();
+    Platform::topParent = this;
+    m_windowClassName = L"what the fuck bro";
     m_hInstance = NULL;
 }
 
@@ -47,21 +52,33 @@ HRESULT Platform::CreatePlatform(WNDPROC customProc)
             return HRESULT_FROM_WIN32(dwError);
     }
 
-    m_rc;
     int x = CW_USEDEFAULT;
     int y = CW_USEDEFAULT;
 
     // Get the size of the windows
-    int nWidth = GetSystemMetrics(SM_CXSCREEN);
-    int nHeight = GetSystemMetrics(SM_CYSCREEN) - 1;
-    SetRect(&m_rc, 0, 0, nWidth, nHeight);
+    // Old method (not accounting for the taskbar)
+        // int nWidth = GetSystemMetrics(SM_CXSCREEN);
+        // int nHeight = GetSystemMetrics(SM_CYSCREEN) - 1;
+        // SetRect(&m_rc, 0, 0, nWidth, nHeight);
+    // New method
+    int wHeight = GetSystemMetrics(SM_CYSCREEN);
+    SystemParametersInfoA(SPI_GETWORKAREA, 0, &m_rc, 0);
+    int nWidth = m_rc.right - m_rc.left;
+    int nHeight = m_rc.bottom - m_rc.top;
+    if (wHeight == nHeight)
+    {
+        m_rc.bottom -= 1;
+        nHeight -= 1;
+    }
+    m_windowSize = Vector2Int(nWidth, nHeight);
+    size = m_windowSize;
 
     // Create the window for our viewport.
     m_hWnd = CreateWindowExW
     (
         WS_EX_TOPMOST | WS_EX_LAYERED,
         m_windowClassName.c_str(),
-        L"Hello!",
+        L"Ralsei on your Desktop!",
         WS_POPUP,
         0, 0, nWidth, nHeight,
         NULL,
@@ -78,8 +95,9 @@ HRESULT Platform::CreatePlatform(WNDPROC customProc)
     }
 
     ShowWindow(m_hWnd, SW_SHOW);
-    AddThumbarButtons(m_hWnd);
+    // AddThumbarButtons(m_hWnd);
     if (!SetForegroundWindow(m_hWnd)) MessageBox(NULL, L"Can't bring to front", L"", MB_OK);
+
     return S_OK;
 }
 
@@ -97,28 +115,47 @@ HRESULT Platform::Run()
     msg.message = WM_NULL;
     PeekMessage(&msg, NULL, 0U, 0U, PM_NOREMOVE);
 
+    typedef std::chrono::high_resolution_clock hrc;
+    static auto timer = hrc::now();
+
     while (WM_QUIT != msg.message)
     {
-        // Process window events.
-        // Use PeekMessage() so we can use idle time to render the scene. 
-        bGotMsg = (PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE) != 0);
-
-        if (bGotMsg)
+        // efficiencyMode = forceEfficiencyMode || !isDeviceCharging();
+        if (false)
         {
-            // Translate and dispatch the message
+            if (!GetMessage(&msg, NULL, 0, 0)) break;
+
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
         else
         {
-            // Update the scene.
-            // Render frames during idle time (when no messages are waiting).
-            // Present the frame to the screen.
-            DwmFlush();
+            if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+            {
+                if (msg.message == WM_QUIT)
+                    break;
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+            else
+            {
+                long double milisec = (hrc::now() - timer).count() / (long double)1000000;
+                if (milisec >= 1 / (long double)60.0 * 1000)
+                {
+                    _Update(milisec / 1000);
+                    timer = hrc::now();
+                }
+            }
         }
     }
 
     return hr;
+}
+
+
+HRESULT Platform::Render()
+{
+    return 0;
 }
 
 
@@ -162,6 +199,11 @@ LRESULT CALLBACK Platform::StaticWindowProc(
     }
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+Vector2Int Platform::GetDimension()
+{
+    return m_windowSize;
 }
 
 

@@ -1,18 +1,5 @@
 #pragma once
-#include <Windows.h>
-#include <WinUser.h>
-#include <shlwapi.h>
-#include <algorithm>
-#include <chrono>
-#include <math.h>
-
-#include <ObjIdl.h>
-#include <gdiplus.h>
-#include <gdiplusheaders.h>
-#include <gdipluspen.h>
-#include <gdiplusbrush.h>
-#include <atlstr.h>
-#include <memory>
+#include "framework.h"
 
 #define PP_NARG(...) \
          PP_NARG_(__VA_ARGS__,PP_RSEQ_N())
@@ -36,13 +23,6 @@
          9,8,7,6,5,4,3,2,1,0
 
 
-
-
-using namespace Gdiplus;
-using namespace std;
-
-int Width = 500;
-int Height = 500;
 
 HFONT hFont;
 

@@ -2,9 +2,8 @@
 #include "framework.h"
 #include "TextPrinter.h"
 
-#include "ImageLoader.h"
+#include "Ralsei.h"
 #include "RightClickMenu.h"
-#include "Utils.h"
 #include "About.h"
 #include "Settings.h"
 #include "Platform.h"
@@ -39,20 +38,23 @@ Gdiplus::PrivateFontCollection fontcollection;
 GdiplusStartupInput startInput;
 ULONG_PTR gdiToken;
 
-Ralsei* ralsei;
-RightClickMenu* menu;
-RightClickMenu* topicChoser;
-About* about;
-Settings* settings;
+shared_ptr<Platform> winMain;
+shared_ptr<Ralsei> ralsei;
+shared_ptr<RightClickMenu> menu;
+shared_ptr<RightClickMenu> topicChoser;
+shared_ptr<About> about;
+shared_ptr<Settings> settings;
 
 bool efficiencyMode = false;
-bool forceEfficiencyMode = false;
 bool mainLoop = true;
 
 constexpr long double delta = 1 / 60.0;
+double dt;
+int framerate = 60;
+long long frameCount = 0;
 
 void Paint(HWND hWnd);
-void MainUpdate(HWND hWnd);
+void MainUpdate(HWND hWnd, double delta);
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
     HRESULT hr = S_OK;
@@ -61,19 +63,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
 #if defined(DEBUG) | defined(_DEBUG)
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
-    
-    string myLine;
-    fstream myFile_Handler;
-    myFile_Handler.open("config.txt");
-    if (myFile_Handler.is_open())
-    {
-        while (getline(myFile_Handler, myLine))
-        {
-            forceEfficiencyMode = (myLine[0] == '1' ? true : false);
-        }
-    }
-    myFile_Handler.close();
-
 
     // start winapi process
     SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
@@ -81,7 +70,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
 
 
     // [Platform] Create a window.
-    std::shared_ptr<Platform> winMain = std::shared_ptr<Platform>(new Platform());
+    winMain = std::make_shared<Platform>();
     hr = winMain->CreatePlatform(WinProc);
     if (hr != S_OK)
     {
@@ -90,30 +79,35 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     HWND hWnd = winMain->GetWindowHandle();
 
     // UI definition
-    ralsei = new Ralsei();
-    menu = new RightClickMenu
+    ralsei = make_shared<Ralsei>();
+    menu = make_shared<RightClickMenu>(RightClickMenu
     { 
         { 
             L"Talk", 
-            L"Idle Mode", 
+            L"Idle Mode",
             L"About",
-            forceEfficiencyMode ? L"Toggle efficiency off" : L"Toggle efficiency on", 
             L"Settings",
-            L"Exit"
+            L"Reset Position",
+            L"Exit",
         },
         { 
             []() { topicChoser->On(); },
             []() { ralsei->SetMode(ModeIdle); },
             [hWnd]() { if (!settings->IsOn()) { about->On(); SetCapture(hWnd); } },
-            []() { forceEfficiencyMode = !forceEfficiencyMode; menu->SetOptionName(3, forceEfficiencyMode ? L"Toggle efficiency off" : L"Toggle efficiency on"); },
             []() { settings->On(); },
+            []() { ralsei->pos = { 300, 800 }; },
             []() { mainLoop = false; }
         },
         400
-    };
-    menu->SetPostEvt([](int i) { menu->Off(); ReleaseCapture(); });
+    });
+    menu->SetPostEvt(
+        [](int i) { 
+            menu->Off(); 
+            ReleaseCapture(); 
+        }
+    );
 
-    topicChoser = new RightClickMenu
+    topicChoser = make_shared<RightClickMenu>(RightClickMenu
     {
         { " * About yourself", " * Dark World", " * Prophecy", " * Soul", " * I got homework", " * Nothing"},
         {
@@ -125,60 +119,93 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
             []() { convoIndex = -1; },
         },
         500
-    };
-    topicChoser->SetPostEvt([](int i) { if (convoIndex != -1) ralsei->SetConvo(convo[convoIndex]); topicChoser->Off(); ReleaseCapture(); });
-    about = new About();
-    settings = new Settings();
+    });
+    topicChoser->SetPostEvt(
+        [](int i) { 
+            if (convoIndex != -1) ralsei->SetConvo(convo[convoIndex]); 
+            topicChoser->Off();
+            ReleaseCapture(); 
+        }
+    );
+    
+    about = make_shared<About>();
 
+    vector<SettingField> settingFields =
+    {
+        { "Efficiency mode", TOGGLE, [](any value) { efficiencyMode = any_cast<bool>(value); }, false },
+        { "Ralsei Mode", TOGGLE, [](any value) { ralsei->SetRemoveHat(any_cast<bool>(value)); }, true, vector<string>{ "Ch1", "Ch2" }},
+        { "Skip intro", TOGGLE, [](any value) { if (!ralsei->hasSaidHi) ralsei->hasSaidHi = any_cast<bool>(value); }, false },
+        { "Framerate", SPINBOX, [](any value) { framerate = any_cast<int>(value); }, 30, vector<int>{ 30, 45, 60 } },
+    };
+    settings = make_shared<Settings>(settingFields);
     MSG msg = { };
+
+    // Setup
+    winMain->Ready();
+    winMain->AddChild(ralsei);
+    winMain->AddChild(menu);
+    winMain->AddChild(topicChoser);
+    winMain->AddChild(about);
+    winMain->AddChild(settings);
+    // winMain->Run();
 
     typedef std::chrono::high_resolution_clock hrc;
     static auto timer = hrc::now();
-    SetTimer(hWnd, 0, delta * 1000, (TIMERPROC)WinProc);
 
     // Old main loop
-    while (false && mainLoop)
+    while (true && mainLoop)
     {
-        efficiencyMode = forceEfficiencyMode || !isDeviceCharging();
-        if (efficiencyMode)
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
-            if (!GetMessage(&msg, NULL, 0, 0)) break;
-
+            if (msg.message == WM_QUIT)
+                break;
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
         else
         {
-            if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+            MainUpdate(hWnd, delta * (60.0 / (efficiencyMode ? 24 : framerate)));
+            frameCount++;
+
+            if (efficiencyMode)
             {
-                if (msg.message == WM_QUIT)
-                    break;
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
+                if (frameCount % 2 == 0)
+                {
+                    DwmFlush();
+                    DwmFlush();
+                }
+                else
+                {
+                    DwmFlush();
+                    DwmFlush();
+                    DwmFlush();
+                }
+            }
+            else if (framerate == 30)
+            {
+                DwmFlush();
+                DwmFlush();
+            }
+            else if (framerate == 45 && frameCount % 3 == 0)
+            {
+                DwmFlush();
+                DwmFlush();
             }
             else
             {
-                MainUpdate(hWnd);
                 DwmFlush();
-
-                //long double milisec = (hrc::now() - timer).count() / (long double)1000000;
-                //if (milisec >= delta * 1000)
-                //{
-                //    timer = hrc::now();
-                //    MainUpdate(hWnd);
-                //}
             }
+
+
+            //long double milisec = (hrc::now() - timer).count() / (long double)1000000;
+            //if (milisec >= delta * 1000)
+            //{
+            //    timer = hrc::now();
+            //    MainUpdate(hWnd);
+            //}
+
         }
     }
-
-    // New main loop
-    winMain->Run();
-
-    myFile_Handler.open("config.txt");
-    myFile_Handler.clear();
-    myFile_Handler << (forceEfficiencyMode ? "1" : "0");
-    myFile_Handler.close();
-
     return 0;
 }
 
@@ -212,12 +239,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
             break;
         }
 
-        case WM_TIMER:
-        {
-            if (efficiencyMode) MainUpdate(hWnd);
-            break;
-        }
-
         case WM_LBUTTONDOWN:
         {
             POINT cPos;
@@ -235,8 +256,8 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
             {
                 if (PtInRect(&wndRect, cPos))
                 {
-                    wndMouseDragOffset.x = ralsei->x - cPos.x;
-                    wndMouseDragOffset.y = ralsei->y - cPos.y;
+                    wndMouseDragOffset.x = ralsei->pos.x - cPos.x;
+                    wndMouseDragOffset.y = ralsei->pos.y - cPos.y;
                     mouseIsDown = 1;
                     wndPosOld = cPos;
                     ralsei->isHolding = true;
@@ -256,7 +277,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
             {
                 if (menu->IsInSubwindowRect(cPos))
                 {
-                    if (menu->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam));
+                    if (menu->InputEvent(Message, wParam, lParam));
                 }
             }
             else
@@ -265,7 +286,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
                 {
                     if (settings->IsInSubwindowRect(cPos))
                     {
-                        if (settings->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam));
+                        if (settings->InputEvent(Message, wParam, lParam));
                     }
                 }
 
@@ -283,7 +304,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 
                     if (topicChoser->IsOn())
                     {
-                        if (topicChoser->OnConfirmChoiceEvent(hWnd, Message, wParam, lParam))
+                        if (topicChoser->InputEvent(Message, wParam, lParam))
                         {
                             topicChoser->IsInSubwindowRect(cPos);
                         }
@@ -314,17 +335,29 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
         case WM_KEYDOWN:
         {
             if (about->IsOn()) about->Off();
+
+            WORD vkCode = LOWORD(wParam); // virtual-key code
+
+            // MessageBoxA(NULL, to_string(wParam).c_str(), "", MB_OK);
+
             if (menu->IsOn())
             {
                 menu->Off();
                 ReleaseCapture();
+            }
+            else if (wParam == VK_F9)
+            {
+                menu->On();
+                menu->SetMenuToMousePos();
+                SetCapture(hWnd);
             }
             break;
         }
 
         case WM_KEYUP:
         {
-            if (wParam == VK_APPS)
+            WORD vkCode = LOWORD(wParam); // virtual-key code
+            if (vkCode == VK_APPS)
             {
                 menu->On();
                 menu->SetMenuToMousePos();
@@ -338,7 +371,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
         case WM_DESTROY:
         {
             int retCode = 0;
-            delete ralsei; // Um... Kris...
             GdiplusShutdown(gdiToken);
             PostQuitMessage(retCode);
             return retCode;
@@ -347,7 +379,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, Message, wParam, lParam);
 }
 
-void MainUpdate(HWND hWnd)
+void MainUpdate(HWND hWnd, double delta)
 {
     // Handle window dragging
     if (mouseIsDown == 1)
@@ -355,19 +387,16 @@ void MainUpdate(HWND hWnd)
         POINT cPos;
         GetCursorPos(&cPos);
 
-        ralsei->x = cPos.x + wndMouseDragOffset.x;
-        ralsei->y = cPos.y + wndMouseDragOffset.y;
+        ralsei->pos.x = cPos.x + wndMouseDragOffset.x;
+        ralsei->pos.y = cPos.y + wndMouseDragOffset.y;
         ralsei->SetVelocity(0, 0);
 
         wndPosOld = cPos;
     }
-    ralsei->Update(delta);
-    menu->Update(delta);
-    topicChoser->SetMenuPos(ralsei->x - topicChoser->width / 2, ralsei->y - 515);
-    topicChoser->Update(delta);
-    about->Update(delta);
-    settings->Update(delta);
 
+    topicChoser->SetMenuPos(ralsei->pos.x - topicChoser->width / 2, ralsei->pos.y - 515);
+
+    winMain->TreeUpdate(delta);
     Paint(hWnd);
 }
 
@@ -422,16 +451,16 @@ void Paint(HWND hWnd)
     if (ralsei->IsSpeaking())
     {
         // Draw dialog box
-        RectF digrect(ralsei->x - 250, ralsei->y - 400, 500, 150);
+        RectF digrect(ralsei->pos.x - 250, ralsei->pos.y - 400, 500, 150);
         DrawFineRect(&g, &brush, digrect);
         g.DrawRectangle(&pen, digrect);
 
         // Draw text
         ATL::CString cstr = ralsei->GetCurrentSpeech();
         g.DrawString(cstr, wcslen(cstr), &f,
-            PointF(ralsei->x - 250 + 45, ralsei->y - 400 + 10), &strformat, &textBrush);
+            PointF(ralsei->pos.x - 250 + 45, ralsei->pos.y - 400 + 10), &strformat, &textBrush);
         g.DrawString(L"*", wcslen(L"*"), &f,
-            PointF(ralsei->x - 250 + 15, ralsei->y - 400 + 10), &strformat, &textBrush);
+            PointF(ralsei->pos.x - 250 + 15, ralsei->pos.y - 400 + 10), &strformat, &textBrush);
     }
 
     // ...draw me?

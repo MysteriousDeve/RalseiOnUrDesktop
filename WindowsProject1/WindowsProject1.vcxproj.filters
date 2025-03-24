@@ -9,7 +9,7 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="Resource Files">
+    <Filter Include="Header Files\Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
@@ -27,7 +27,7 @@
     <ClInclude Include="RalseiInUrDesktop.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ImageLoader.h">
+    <ClInclude Include="Ralsei.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="TextPrinter.h">
@@ -48,21 +48,27 @@
     <ClInclude Include="Settings.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="UIElement.h">
+    <ClInclude Include="InputElement.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Vector2.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationClip.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StateMachine.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LoopbackCapture.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RalseiInUrDesktop.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ImageLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Scrap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TextPrinter.cpp">
@@ -71,18 +77,33 @@
     <ClCompile Include="Platform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Subwindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio2D.h">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Ralsei.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RalseiState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LookbackCapture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WindowsProject1.rc">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </Image>
     <Image Include="WindowsProject1.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
@@ -94,10 +115,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ttf1.bin">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="myfont1.bin">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="sound\castletown_empty.ogg" />
     <None Include="ikpFlac.dll" />
@@ -107,13 +128,13 @@
   </ItemGroup>
   <ItemGroup>
     <Media Include="sound\snd_ralsei_yell.wav">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </Media>
     <Media Include="sound\snd_splat.wav">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </Media>
     <Media Include="sound\snd_txtral_ch1.wav">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </Media>
   </ItemGroup>
 </Project>

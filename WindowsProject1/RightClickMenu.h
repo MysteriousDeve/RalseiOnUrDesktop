@@ -34,8 +34,10 @@ public:
 		this->options = options;
 		this->eventCalls = eventCalls;
 		this->width = width;
+		this->size = { (double)width, 40.0 * options.size() + 25 };
+		offset = { 0, 0 };
 
-		hook = { 0, 1 };
+		Off();
 	}
 
 	void SetOptionName(int index, CString newOptionName)
@@ -56,9 +58,12 @@ public:
 		}
 	}
 
-	bool OnConfirmChoiceEvent(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
+	bool InputEvent(UINT Message, WPARAM wParam, LPARAM lParam)
 	{
 		int i = GetCurrentHoverChoice();
+
+		// MessageBoxA(NULL, to_string(i).c_str(), "", MB_OK);
+
 		if (i < 0 || i >= eventCalls.size()) return false;
 		eventCalls[i]();
 		postEvt(i);
@@ -81,15 +86,23 @@ public:
 		return -1;
 	}
 
-	void SetMenuToMousePos()
+	void SetMenuToMousePos(bool adjustToAlwaysShow = true)
 	{
-		pos = GetCursorPosition();
+		auto ps = GetCursorPosition();
+		SetMenuPos(ps.x, ps.y, adjustToAlwaysShow);
 	}
 
-	void SetMenuPos(int x, int y)
+	void SetMenuPos(int x, int y, bool adjustToAlwaysShow = false)
 	{
 		pos.x = x;
 		pos.y = y;
+		if (adjustToAlwaysShow)
+		{
+			int w = width, h = 40 * options.size() + 25;
+			Vector2Int dim = Platform::topParent->GetDimension();
+			if (x + w > dim.x) pos.x -= w;
+			if (y + h > dim.y) pos.y -= h;
+		}
 	}
 
 	void On()
@@ -121,10 +134,10 @@ public:
 
         if (IsOn())
         {
-			Vector2 hookedPos = GetPositionHooked();
+			Vector2 hookedPos = GetGlobalPosition();
 
             // Draw dialog box
-			Rect drawingRect = {(int)pos.x, (int)pos.y, (int)size.x, (int)(40 * options.size() + 25) };
+			Rect drawingRect = {(int)hookedPos.x, (int)hookedPos.y, (int)size.x, (int)(40 * options.size() + 25) };
 			drawingRect.Width = width;
 			drawingRect.Height = 40 * options.size() + 25;
             DrawFineRect(g, &brush, drawingRect);

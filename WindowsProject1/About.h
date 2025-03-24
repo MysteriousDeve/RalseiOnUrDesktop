@@ -1,25 +1,9 @@
 #pragma once
-#include <Windows.h>
-#include <WinUser.h>
-#include <shlwapi.h>
-#include <algorithm>
-#include <chrono>
-#include <math.h>
-#include <vector>
-
-#include <ObjIdl.h>
-#include <gdiplus.h>
-#include <gdiplusheaders.h>
-#include <gdipluspen.h>
-#include <gdiplusbrush.h>
-#include <uxtheme.h>
-#include <atlstr.h>
-#include <functional>
+#include "framework.h"
 #include <irrKlang/irrKlang.h>
 
 #include "Utils.h"
 #include "Subwindow.h"
-#include "UIElement.h"
 
 using namespace std;
 using namespace irrklang;
@@ -27,15 +11,13 @@ using namespace irrklang;
 class About : public Subwindow
 {
 private:
-	int wWidth = 400, wHeight = 330;
 	ISoundEngine* engine;
 	const char* soundfile = "sound\\castletown_empty.ogg";
 	HFONT hFontSmall;
-	TextPrinter* prt;
+	shared_ptr<TextPrinter> prt;
 public:
 	About() : Subwindow()
 	{
-		Rect drawingRect = { (Width - wWidth) / 2, (Height - wHeight) / 2, wWidth, wHeight };
 		engine = createIrrKlangDevice();
 		hFontSmall = CreateFontA(
 			30,
@@ -53,14 +35,19 @@ public:
 			DEFAULT_PITCH,
 			"8bitoperator JVE"
 		);
-		prt = new TextPrinter(
-			"RalseiOnUrDesktop\nDeveloped by MysteriousDeve\nUse graphics and sounds\nfrom the game Deltarune\n(Have you felt fluffy yet?)\n\nClick anywhere to exit...", 
-			false, 2, "", 9999999, false);
+
+		offset = { 0.5, 0.5 };
+		hook = { 0.5, 0.5 };
+		size = { 400, 330 };
 	}
 
-	void Update(double dt)
+	void Ready() override
 	{
-		prt->Update(dt);
+		prt = make_shared<TextPrinter>(
+			"RalseiOnUrDesktop\nDeveloped by MysteriousDeve\nUse graphics and sounds\nfrom the game Deltarune\n(Have you felt fluffy yet?)\n\nClick anywhere to exit...",
+			false, 0.28, "", INFINITY, false);
+		AddChild(prt);
+		Off();
 	}
 
 	void On()
@@ -103,8 +90,10 @@ public:
 			StringFormat strformat;
 			strformat.SetAlignment(StringAlignmentCenter);
 
+			PointF hookedPos = (PointF)GetGlobalPosition();
+
 			CString s = "ABOUT";
-			PointF drawPt = PointF(Width / 2, pos.y + 20);
+			PointF drawPt = hookedPos + PointF(size.x / 2, pos.y + 20);
 			g->DrawString(
 				s, wcslen(s),
 				&f, drawPt,
@@ -114,7 +103,7 @@ public:
 
 			Font f2(hdcMem, hFontSmall);
 			CString s2 = prt->GetCurrent();
-			PointF drawPt2 = PointF(Width / 2, pos.y + 80);
+			PointF drawPt2 = hookedPos + PointF(size.x / 2, pos.y + 80);
 			g->DrawString(
 				s2, wcslen(s2),
 				&f2, drawPt2,

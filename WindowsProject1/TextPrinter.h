@@ -1,13 +1,13 @@
 #pragma once
 
-#include <atlstr.h>
+#include "framework.h"
+#include "Subwindow.h"
 #include <irrKlang/irrKlang.h>
-#include <string>
-#include <vector>
+#include "Audio2D.h"
 using namespace irrklang;
 using namespace std;
 
-class TextPrinter
+class TextPrinter : public Subwindow
 {
 private:
 	double rate = 0.05;
@@ -18,7 +18,7 @@ private:
 	CString str;
 	CString strCopy;
 	CString current;
-	ISoundEngine* engine;
+	shared_ptr<Audio2D> engine;
 	string playSound;
 	bool isTimeout = false;
 	bool delayOnSpecialChars;
@@ -34,10 +34,24 @@ public:
 		this->rate = rate;
 		this->delayOnSpecialChars = delayOnSpecialChars;
 		Reset();
-		engine = createIrrKlangDevice();
 	}
 
-	void Update(double dt)
+	void Ready() override
+	{
+		if (!engine)
+		{
+			engine = make_shared<Audio2D>();
+			AddChild(engine);
+		}
+		engine->Preload(playSound);
+	}
+
+	void SetAudioEngine2D(shared_ptr<Audio2D> engine)
+	{
+		this->engine = engine;
+	}
+
+	void Update(double dt) override
 	{
 		if (!isPlaying) return;
 
@@ -58,7 +72,10 @@ public:
 						{
 							internalTime -= rate * 5;
 						}
-						if (playSound != "") engine->play2D(playSound.c_str());
+						if (playSound != "")
+						{
+							engine->PlaySound(playSound);
+						}
 						break;
 					}
 				}

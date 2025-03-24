@@ -105,6 +105,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -119,6 +120,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -129,23 +131,30 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="About.h" />
+    <ClInclude Include="AnimationClip.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="ImageLoader.h" />
+    <ClInclude Include="LoopbackCapture.h" />
+    <ClInclude Include="Ralsei.h" />
     <ClInclude Include="Platform.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="RightClickMenu.h" />
     <ClInclude Include="Settings.h" />
+    <ClInclude Include="StateMachine.h" />
     <ClInclude Include="Subwindow.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TextPrinter.h" />
-    <ClInclude Include="UIElement.h" />
+    <ClInclude Include="InputElement.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="RalseiInUrDesktop.h" />
+    <ClInclude Include="Vector2.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ImageLoader.cpp" />
+    <ClCompile Include="LookbackCapture.cpp" />
+    <ClCompile Include="Ralsei.cpp" />
+    <ClCompile Include="Audio2D.h" />
     <ClCompile Include="Platform.cpp" />
-    <ClCompile Include="Scrap.cpp" />
+    <ClCompile Include="RalseiState.cpp" />
+    <ClCompile Include="Subwindow.cpp" />
     <ClCompile Include="TextPrinter.cpp" />
     <ClCompile Include="RalseiInUrDesktop.cpp" />
   </ItemGroup>

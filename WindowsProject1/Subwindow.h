@@ -1,138 +1,124 @@
 #pragma once
-#include <Windows.h>
-#include <WinUser.h>
-#include <shlwapi.h>
-#include <algorithm>
-#include <chrono>
-#include <math.h>
-#include <vector>
+#include "framework.h"
 
-#include <ObjIdl.h>
-#include <gdiplus.h>
-#include <gdiplusheaders.h>
-#include <gdipluspen.h>
-#include <gdiplusbrush.h>
-#include <uxtheme.h>
-#include <atlstr.h>
-#include <functional>
-#include "Utils.h"
-using namespace std;
-
-class Subwindow
+class Subwindow : public enable_shared_from_this<Subwindow>
 {
-protected:
-	bool on = false;
 public:
+	typedef std::shared_ptr<Subwindow> SubwPtr;
+
+protected:
+	bool on = true;
+	bool visible = true;
+	std::vector<SubwPtr> children;
+	SubwPtr owner;
+
+	// Protected call for recursive update call
+	void _Update(double dt)
+	{
+		Update(dt);
+		for (auto ch = children.begin(); ch != children.end(); ch++)
+		{
+			if ((*ch)->IsOn()) (*ch)->_Update(dt);
+		}
+	}
+
+	void _Paint(Graphics* g, HDC hdcMem)
+	{
+		Paint(g, hdcMem);
+		for (auto ch = children.begin(); ch != children.end(); ch++)
+		{
+			if ((*ch)->IsOn() && (*ch)->IsVisible()) (*ch)->_Paint(g, hdcMem);
+		}
+	}
+
+	bool _Evt(UINT Message, WPARAM wParam, LPARAM lParam)
+	{
+		bool isConsumed = InputEvent(Message, wParam, lParam);
+		if (isConsumed) return true;
+
+		for (auto ch = children.begin(); ch != children.end(); ch++)
+		{
+			isConsumed = (*ch)->_Evt(Message, wParam, lParam);
+			if (isConsumed) return true;
+		}
+		return false;
+	}
+
+public:
+	string name;
 	Vector2 pos = { 0, 0 };
 	Vector2 size = { 200, 200 };
 	double zOrder = 0;
 	Vector2 hook = { 0, 0 };
+	Vector2 offset = { 0, 0 };
 
-	// Currently only return the non-hooked position
-	Vector2 GetPositionHooked()
+	Subwindow() {};
+	~Subwindow();
+	virtual void Ready() { };
+
+	// CMS (Children Management System)
+	void AddChild(SubwPtr child)
 	{
-		return pos;
-		// return Vector2(pos.x + drawingRect.Width * hook.x, pos.y + drawingRect.Width * hook.y);
-	}
-
-	Subwindow()
-	{
-
-	}
-
-	void Update(double dt)
-	{
-
-	}
-
-	bool OnConfirmChoiceEvent(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
-	{
-
-	}
-
-	void On()
-	{
-		on = true;
-	}
-
-	void Off()
-	{
-		on = false;
-	}
-
-	bool IsOn()
-	{
-		return on;
-	}
-
-	void Paint(Graphics* g, HDC hdcMem)
-	{
-		if (!IsOn()) return;
-	}
-
-	bool IsInSubwindowRect(Vector2 pt)
-	{
-		return pos.x < pt.x and pos.y < pt.y and pos.x + size.x > pt.x and pos.y + size.y > pt.y;
-	}
-
-	bool IsCursorInSubwindowRect()
-	{
-		POINT pt;
-		GetCursorPos(&pt);
-		return IsInSubwindowRect(pt);
-	}
-
-	Vector2Int GetCursorPosition()
-	{
-		POINT pt;
-		GetCursorPos(&pt);
-		Vector2Int cursorPos = Vector2Int(pt);
-		return cursorPos;
-	}
-
-	Rect ToRect()
-	{
-		return Rect(pos.x, pos.y, size.x, size.y);
-	}
-}; typedef std::shared_ptr<Subwindow> SubwPtr;
-
-
-class Substack
-{
-private:
-	vector<SubwPtr> subwindows;
-
-public:
-
-	void Paint(Graphics* g, HDC hdc)
-	{
-		vector<SubwPtr> sorted = subwindows;
-		sort(sorted.begin(), sorted.end(), [](SubwPtr a, SubwPtr b) { return a->zOrder < b->zOrder; });
-
-		for (SubwPtr s : subwindows)
+		if (child != nullptr)
 		{
-			s->Paint(g, hdc);
+			for (auto i = children.begin(); i != children.end(); i++)
+			{
+				if (*i == child) { abort(); return; }
+			}
+			child->owner = this->shared_from_this();
+			children.push_back(child);
+			child->Ready();
+		}
+		else abort();
+	}
+
+	void AddChildren(vector<SubwPtr> children)
+	{
+		for (SubwPtr c : children)
+		{
+			AddChild(c);
+		}
+	}
+	void RemoveChild(SubwPtr child)
+	{
+		for (auto i = children.begin(); i != children.end(); i++)
+		{
+			if (*i == child)
+			{
+				// child->owner = nullptr;
+				children.erase(i);
+				break;
+			}
 		}
 	}
 
-	void Update(double dt)
-	{
-		vector<SubwPtr> sorted = subwindows;
-		sort(sorted.begin(), sorted.end(), [](SubwPtr a, SubwPtr b) { return a->zOrder < b->zOrder; });
+	// Event call functions
+	virtual void Update(double dt) {}
+	virtual void Paint(Graphics* g, HDC hdcMem) {}
+	virtual bool InputEvent(UINT Message, WPARAM wParam, LPARAM lParam);
 
-		for (SubwPtr s : subwindows)
-		{
-			s->Update(dt);
-		}
-	}
+	// On and visibility state
+	void On();
+	void Off();
+	bool IsOn();
+	void Hide();
+	void Show();
+	void SetVisible(bool visible);
+	bool IsVisible();
 
-	void Add(SubwPtr sub)
-	{
-		subwindows.push_back(sub);
-	}
+	// Checker
+	bool IsInSubwindowRect(Vector2 pt);
+	bool IsCursorInSubwindowRect();
 
-	void AddMultiple(vector<SubwPtr> subs)
+	// Getters
+	Vector2 GetGlobalPosition();
+	Vector2Int GetCursorPosition();
+	Rect ToRect();
+
+	SubwPtr GetOwner()
 	{
-		subwindows.insert(subwindows.end(), subs.begin(), subs.end());
+		return owner;
 	}
-};
+}; typedef Subwindow::SubwPtr SubwPtr;
+
+#include "Platform.h"
